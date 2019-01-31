@@ -24,11 +24,9 @@
 package tech.feldman.betterrecords.block
 
 import tech.feldman.betterrecords.api.BetterRecordsAPI
-import tech.feldman.betterrecords.api.wire.IRecordWire
 import tech.feldman.betterrecords.api.wire.IRecordWireManipulator
 import tech.feldman.betterrecords.block.tile.TileRecordPlayer
 import tech.feldman.betterrecords.client.render.RenderRecordPlayer
-import tech.feldman.betterrecords.helper.ConnectionHelper
 import tech.feldman.betterrecords.helper.nbt.getSounds
 import tech.feldman.betterrecords.helper.nbt.isRepeatable
 import tech.feldman.betterrecords.helper.nbt.isShufflable
@@ -49,6 +47,7 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.IBlockAccess
 import net.minecraft.world.World
+import tech.feldman.betterrecords.api.wire.IWireSoundDevice
 import java.util.*
 
 class BlockRecordPlayer(name: String) : ModBlock(Material.WOOD, name), TESRProvider<TileRecordPlayer>, ItemModelProvider {
@@ -98,7 +97,7 @@ class BlockRecordPlayer(name: String) : ModBlock(Material.WOOD, name), TESRProvi
                         PacketHandler.sendToAll(PacketRecordPlay(
                                 tileRecordPlayer.pos,
                                 tileRecordPlayer.world.provider.dimension,
-                                tileRecordPlayer.songRadius,
+                                tileRecordPlayer.calculatePlayRadius(),
                                 isRepeatable(tileEntity.record),
                                 isShufflable(tileEntity.record),
                                 tileEntity.record
@@ -133,7 +132,7 @@ class BlockRecordPlayer(name: String) : ModBlock(Material.WOOD, name), TESRProvi
     override fun removedByPlayer(state: IBlockState, world: World, pos: BlockPos, player: EntityPlayer, willHarvest: Boolean): Boolean {
         if (world.isRemote) return super.removedByPlayer(state, world, pos, player, willHarvest)
         val te = world.getTileEntity(pos)
-        if (te != null && te is IRecordWire) ConnectionHelper.clearConnections(world, te as IRecordWire)
+        if (te != null && te is IWireSoundDevice) TODO("Remove Connections")
         return super.removedByPlayer(state, world, pos, player, willHarvest)
     }
 

@@ -38,9 +38,8 @@ object PacketHandler {
         HANDLER.registerMessage(PacketRecordPlay.Handler::class.java, PacketRecordPlay::class.java, 0, CLIENT)
         HANDLER.registerMessage(PacketRadioPlay.Handler::class.java, PacketRadioPlay::class.java, 1, CLIENT)
         HANDLER.registerMessage(PacketSoundStop.Handler::class.java, PacketSoundStop::class.java, 2, CLIENT)
-        HANDLER.registerMessage(PacketWireConnection.Handler::class.java, PacketWireConnection::class.java, 3, SERVER)
-        HANDLER.registerMessage(PacketURLWrite.Handler::class.java, PacketURLWrite::class.java, 4, SERVER)
-        HANDLER.registerMessage(PacketSendLibrary.Handler::class.java, PacketSendLibrary::class.java, 5, CLIENT)
+        HANDLER.registerMessage(PacketURLWrite.Handler::class.java, PacketURLWrite::class.java, 3, SERVER)
+        HANDLER.registerMessage(PacketSendLibrary.Handler::class.java, PacketSendLibrary::class.java, 4, CLIENT)
     }
 
     fun sendToAll(msg: IMessage) {

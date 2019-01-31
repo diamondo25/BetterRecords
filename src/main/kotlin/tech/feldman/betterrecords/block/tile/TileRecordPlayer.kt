@@ -23,19 +23,21 @@
  */
 package tech.feldman.betterrecords.block.tile
 
-import tech.feldman.betterrecords.api.wire.IRecordWire
-import tech.feldman.betterrecords.helper.ConnectionHelper
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.tileentity.TileEntity
+import net.minecraft.util.ITickable
+import tech.feldman.betterrecords.api.wire.IWireSoundDevice
+import tech.feldman.betterrecords.api.wire.IWireSoundSource
 
-class TileRecordPlayer : SimpleRecordWireHome(), IRecordWire {
+class TileRecordPlayer : TileEntity(), ITickable, IWireSoundSource {
 
-    override fun getName() = "Record Player"
+    override val soundBonus = 40F
 
-    override val songRadiusIncrease = 40F
+    override val children = mutableListOf<IWireSoundDevice>()
 
-    override var record = ItemStack.EMPTY
+    var record = ItemStack.EMPTY
         set(value) {
             field = value.copy()
             recordEntity = EntityItem(world, pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble(), field)
@@ -80,8 +82,6 @@ class TileRecordPlayer : SimpleRecordWireHome(), IRecordWire {
         } else {
             needleLocation = 0f
         }
-
-        super.update()
     }
 
     override fun readFromNBT(compound: NBTTagCompound) = compound.run {
@@ -89,11 +89,6 @@ class TileRecordPlayer : SimpleRecordWireHome(), IRecordWire {
 
         record = ItemStack(getCompoundTag("record"))
         opening = getBoolean("opening")
-
-        connections = ConnectionHelper.unserializeConnections(getString("connections")).toMutableList()
-        wireSystemInfo = ConnectionHelper.unserializeWireSystemInfo(compound.getString("wireSystemInfo"))
-
-        playRadius = getFloat("playRadius")
     }
 
     override fun writeToNBT(compound: NBTTagCompound) = compound.apply {
@@ -101,11 +96,6 @@ class TileRecordPlayer : SimpleRecordWireHome(), IRecordWire {
 
         setTag("record", getStackTagCompound(record))
         setBoolean("opening", opening)
-
-        setString("connections", ConnectionHelper.serializeConnections(connections))
-        setString("wireSystemInfo", ConnectionHelper.serializeWireSystemInfo(wireSystemInfo))
-
-        setFloat("playRadius", playRadius)
     }
 
     fun getStackTagCompound(stack: ItemStack?): NBTTagCompound {

@@ -25,7 +25,6 @@ package tech.feldman.betterrecords.client.handler
 
 import tech.feldman.betterrecords.ID
 import tech.feldman.betterrecords.ModConfig
-import tech.feldman.betterrecords.api.wire.IRecordWireHome
 import tech.feldman.betterrecords.client.sound.SoundPlayer
 import tech.feldman.betterrecords.extensions.glMatrix
 import tech.feldman.betterrecords.item.ItemWire
@@ -38,6 +37,7 @@ import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.relauncher.Side
 import org.lwjgl.opengl.GL11
+import tech.feldman.betterrecords.api.wire.IWireSoundSource
 
 @Mod.EventBusSubscriber(modid = ID, value = [Side.CLIENT])
 object RenderEventHandler {
@@ -72,7 +72,7 @@ object RenderEventHandler {
                         // TODO: Clean up this
                         val pos = BlockPos(ItemWire.connection!!.x1, ItemWire.connection!!.y1, ItemWire.connection!!.z1)
                         if (SoundPlayer.isSoundPlayingAt(pos, mc.world.provider.dimension)) {
-                            val radius = (mc.world.getTileEntity(pos) as IRecordWireHome).songRadius
+                            val radius = (mc.world.getTileEntity(pos) as IWireSoundSource).calculatePlayRadius()
 
                             GlStateManager.disableCull()
                             GlStateManager.enableBlend()

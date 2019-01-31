@@ -23,12 +23,9 @@
  */
 package tech.feldman.betterrecords.block
 
-import tech.feldman.betterrecords.api.sound.ISoundHolder
-import tech.feldman.betterrecords.api.wire.IRecordWire
 import tech.feldman.betterrecords.api.wire.IRecordWireManipulator
 import tech.feldman.betterrecords.block.tile.TileRadio
 import tech.feldman.betterrecords.client.render.RenderRadio
-import tech.feldman.betterrecords.helper.ConnectionHelper
 import tech.feldman.betterrecords.helper.nbt.getSounds
 import tech.feldman.betterrecords.item.ModItems
 import tech.feldman.betterrecords.network.PacketHandler
@@ -45,6 +42,7 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.IBlockAccess
 import net.minecraft.world.World
+import tech.feldman.betterrecords.api.wire.IWireSoundDevice
 import java.util.*
 
 class BlockRadio(name: String) : ModBlockDirectional(Material.WOOD, name), TESRProvider<TileRadio>, ItemModelProvider {
@@ -87,7 +85,7 @@ class BlockRadio(name: String) : ModBlockDirectional(Material.WOOD, name), TESRP
                         PacketHandler.sendToAll(PacketRadioPlay(
                                 pos,
                                 world.provider.dimension,
-                                te.songRadius,
+                                te.calculatePlayRadius(),
                                 getSounds(te.crystal).first().name,
                                 getSounds(te.crystal).first().url
                         ))
@@ -101,8 +99,8 @@ class BlockRadio(name: String) : ModBlockDirectional(Material.WOOD, name), TESRP
 
     override fun removedByPlayer(state: IBlockState, world: World, pos: BlockPos, player: EntityPlayer, willHarvest: Boolean): Boolean {
         if (!world.isRemote) {
-            (world.getTileEntity(pos) as? IRecordWire)?.let { te ->
-                ConnectionHelper.clearConnections(world, te)
+            (world.getTileEntity(pos) as? IWireSoundDevice)?.let { te ->
+                TODO("Remove Connections")
             }
         }
         return super.removedByPlayer(state, world, pos, player, willHarvest)

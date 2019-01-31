@@ -23,10 +23,8 @@
  */
 package tech.feldman.betterrecords.block
 
-import tech.feldman.betterrecords.api.wire.IRecordWire
 import tech.feldman.betterrecords.block.tile.TileLaser
 import tech.feldman.betterrecords.client.render.RenderLaser
-import tech.feldman.betterrecords.helper.ConnectionHelper
 import net.minecraft.block.material.Material
 import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.EntityLivingBase
@@ -39,6 +37,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.text.TextComponentTranslation
 import net.minecraft.world.IBlockAccess
 import net.minecraft.world.World
+import tech.feldman.betterrecords.api.wire.IWireSoundDevice
 
 class BlockLaser(name: String) : ModBlock(Material.WOOD, name), TESRProvider<TileLaser>, ItemModelProvider {
 
@@ -67,8 +66,8 @@ class BlockLaser(name: String) : ModBlock(Material.WOOD, name), TESRProvider<Til
 
     override fun removedByPlayer(state: IBlockState, world: World, pos: BlockPos, player: EntityPlayer, willHarvest: Boolean): Boolean {
         if (!world.isRemote) {
-            (world.getTileEntity(pos) as? IRecordWire)?.let { te ->
-                ConnectionHelper.clearConnections(world, te)
+            (world.getTileEntity(pos) as? IWireSoundDevice)?.let { te ->
+                TODO("Remove Connections")
             }
         }
         return super.removedByPlayer(state, world, pos, player, willHarvest)

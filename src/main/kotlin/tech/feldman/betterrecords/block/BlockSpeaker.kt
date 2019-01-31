@@ -24,10 +24,8 @@
 package tech.feldman.betterrecords.block
 
 import tech.feldman.betterrecords.ID
-import tech.feldman.betterrecords.api.wire.IRecordWire
 import tech.feldman.betterrecords.block.tile.TileSpeaker
 import tech.feldman.betterrecords.client.render.RenderSpeaker
-import tech.feldman.betterrecords.helper.ConnectionHelper
 import net.minecraft.block.Block
 import net.minecraft.block.material.Material
 import net.minecraft.block.properties.PropertyEnum
@@ -47,6 +45,7 @@ import net.minecraft.world.IBlockAccess
 import net.minecraft.world.World
 import net.minecraftforge.client.ForgeHooksClient
 import net.minecraftforge.client.model.ModelLoader
+import tech.feldman.betterrecords.api.wire.IWireSoundDevice
 
 class BlockSpeaker(name: String) : ModBlock(Material.WOOD, name), TESRProvider<TileSpeaker>, ItemModelProvider {
 
@@ -95,8 +94,8 @@ class BlockSpeaker(name: String) : ModBlock(Material.WOOD, name), TESRProvider<T
 
     override fun removedByPlayer(state: IBlockState, world: World, pos: BlockPos, player: EntityPlayer, willHarvest: Boolean): Boolean {
         if (!world.isRemote) {
-            (world.getTileEntity(pos) as? IRecordWire)?.let { te ->
-                ConnectionHelper.clearConnections(world, te)
+            (world.getTileEntity(pos) as? IWireSoundDevice)?.let { te ->
+                TODO("Remove Connections")
             }
         }
         return super.removedByPlayer(state, world, pos, player, willHarvest)

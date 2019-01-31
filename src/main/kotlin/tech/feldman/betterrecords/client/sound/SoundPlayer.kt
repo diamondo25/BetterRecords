@@ -23,17 +23,15 @@
  */
 package tech.feldman.betterrecords.client.sound
 
-import tech.feldman.betterrecords.BetterRecords
 import tech.feldman.betterrecords.ModConfig
-import tech.feldman.betterrecords.api.record.IRecordAmplitude
 import tech.feldman.betterrecords.api.sound.Sound
-import tech.feldman.betterrecords.api.wire.IRecordWireHome
 import tech.feldman.betterrecords.client.handler.ClientRenderHandler
 import tech.feldman.betterrecords.util.downloadFile
 import tech.feldman.betterrecords.util.getVolumeForPlayerFromBlock
 import net.minecraft.client.Minecraft
 import net.minecraft.util.math.BlockPos
 import org.apache.commons.io.FilenameUtils
+import tech.feldman.betterrecords.api.wire.IWireSoundSource
 import java.io.File
 import java.io.InputStream
 import java.net.URL
@@ -133,7 +131,7 @@ object SoundPlayer {
         while (bytes >= 0 && isSoundPlayingAt(pos, dimension)) {
             volumeControl.value = getVolumeForPlayerFromBlock(pos)
             line.write(buffer, 0, bytes)
-            updateLights(buffer, pos, dimension)
+            updateNetwork(buffer, pos, dimension)
             bytes = din.read(buffer)
         }
 
@@ -152,33 +150,18 @@ object SoundPlayer {
         return res as SourceDataLine
     }
 
-    private fun updateLights(buffer: ByteArray, pos: BlockPos, dimension: Int) {
+    private fun updateNetwork(buffer: ByteArray, pos: BlockPos, dimension: Int) {
         if (Minecraft.getMinecraft().world.provider.dimension != dimension) {
             return
         }
 
-        var unscaledTreble = -1F
-        var unscaledBass = -1F
-
         val te = Minecraft.getMinecraft().world.getTileEntity(pos)
 
-        (te as? IRecordWireHome)?.let {
-            te.addTreble(getUnscaledWaveform(buffer, true, false))
-            te.addBass(getUnscaledWaveform(buffer, false, false))
-
-            for (connection in te.connections) {
-                val connectedTe = Minecraft.getMinecraft().world.getTileEntity(BlockPos(connection.x2, connection.y2, connection.z2))
-
-                (connectedTe as? IRecordAmplitude)?.let {
-                    if (unscaledTreble == -1F || unscaledBass == 11F) {
-                        unscaledTreble = getUnscaledWaveform(buffer, true, true)
-                        unscaledBass = getUnscaledWaveform(buffer, false, true)
-                    }
-
-                    connectedTe.treble = unscaledTreble
-                    connectedTe.bass = unscaledBass
-                }
-            }
+        if (te is IWireSoundSource) {
+            te.updateChildren(
+                    getUnscaledWaveform(buffer, true, true),
+                    getUnscaledWaveform(buffer, false, true)
+            )
         }
     }
 

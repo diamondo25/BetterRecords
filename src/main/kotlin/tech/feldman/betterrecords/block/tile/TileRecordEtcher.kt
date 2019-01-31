@@ -30,6 +30,8 @@ import net.minecraft.inventory.IInventory
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.util.ITickable
+import tech.feldman.betterrecords.api.wire.IWireSoundDevice
+import tech.feldman.betterrecords.api.wire.IWireSoundSink
 
 class TileRecordEtcher : ModInventoryTile(), IInventory, ITickable {
 

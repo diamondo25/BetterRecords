@@ -23,11 +23,8 @@
  */
 package tech.feldman.betterrecords.block
 
-import tech.feldman.betterrecords.api.record.IRecordAmplitude
-import tech.feldman.betterrecords.api.wire.IRecordWire
 import tech.feldman.betterrecords.block.tile.TileStrobeLight
 import tech.feldman.betterrecords.client.render.RenderStrobeLight
-import tech.feldman.betterrecords.helper.ConnectionHelper
 import net.minecraft.block.material.Material
 import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.player.EntityPlayer
@@ -52,8 +49,8 @@ class BlockStrobeLight(name: String) : ModBlock(Material.WOOD, name), TESRProvid
 
     override fun getLightValue(state: IBlockState, access: IBlockAccess, pos: BlockPos): Int {
         val te = access.getTileEntity(pos)
-        if (te == null || te !is IRecordWire || te !is IRecordAmplitude) return 0
-        return if ((te as IRecordWire).connections.size > 0) 5 else 0
+        if (te == null || te !is TileStrobeLight) return 0
+        return if (te.children.size > 0) 5 else 0
     }
 
     override fun onBlockAdded(world: World?, pos: BlockPos?, state: IBlockState?) {
@@ -64,7 +61,7 @@ class BlockStrobeLight(name: String) : ModBlock(Material.WOOD, name), TESRProvid
     override fun removedByPlayer(state: IBlockState, world: World, pos: net.minecraft.util.math.BlockPos, player: EntityPlayer, willHarvest: Boolean): Boolean {
         if (world.isRemote) return super.removedByPlayer(state, world, pos, player, willHarvest)
         val te = world.getTileEntity(pos)
-        if (te != null && te is IRecordWire) ConnectionHelper.clearConnections(world, te as IRecordWire)
+        TODO("Remove Connections")
         return super.removedByPlayer(state, world, pos, player, willHarvest)
     }
 }

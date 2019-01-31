@@ -23,17 +23,17 @@
  */
 package tech.feldman.betterrecords.block.tile
 
-import tech.feldman.betterrecords.api.connection.RecordConnection
-import tech.feldman.betterrecords.api.record.IRecordAmplitude
-import tech.feldman.betterrecords.api.wire.IRecordWire
-import tech.feldman.betterrecords.helper.ConnectionHelper
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.util.ITickable
+import tech.feldman.betterrecords.api.wire.IWireSoundDevice
+import tech.feldman.betterrecords.api.wire.IWireSoundSink
 import java.util.*
 
-class TileLaser : ModTile(), IRecordWire, IRecordAmplitude, ITickable {
+class TileLaser : ModTile(), ITickable, IWireSoundSink {
 
-    override var connections = mutableListOf<RecordConnection>()
+    override val children = mutableListOf<IWireSoundDevice>()
+
+    override val soundBonus = 0F
 
     var pitch = 0F
     var yaw = 0F
@@ -66,10 +66,6 @@ class TileLaser : ModTile(), IRecordWire, IRecordAmplitude, ITickable {
             if (b < .2F) b += b
         }
 
-    override fun getName() = "Laser"
-
-    override val songRadiusIncrease = 0F
-
     override fun update() {
         if (bass > 0) bass--
         if (bass < 0) bass = 0F
@@ -78,7 +74,6 @@ class TileLaser : ModTile(), IRecordWire, IRecordAmplitude, ITickable {
     override fun readFromNBT(compound: NBTTagCompound) = compound.run {
         super.readFromNBT(compound)
 
-        connections = ConnectionHelper.unserializeConnections(getString("connections")).toMutableList()
         pitch = getFloat("pitch")
         yaw = getFloat("yaw")
         length = getInteger("length")
@@ -87,7 +82,6 @@ class TileLaser : ModTile(), IRecordWire, IRecordAmplitude, ITickable {
     override fun writeToNBT(compound: NBTTagCompound) = compound.apply {
         super.writeToNBT(compound)
 
-        setString("connections", ConnectionHelper.serializeConnections(connections))
         setFloat("pitch", pitch)
         setFloat("yaw", yaw)
         setInteger("length", length)
