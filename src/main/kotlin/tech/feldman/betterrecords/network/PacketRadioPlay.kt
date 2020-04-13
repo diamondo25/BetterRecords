@@ -63,12 +63,14 @@ class PacketRadioPlay @JvmOverloads constructor(
         url = ByteBufUtils.readUTF8String(buf)
     }
 
+    fun postToBus() {
+        MinecraftForge.EVENT_BUS.post(RadioInsertEvent(pos, dimension, playRadius, Sound(url, local)))
+    }
+
     class Handler : IMessageHandler<PacketRadioPlay, IMessage> {
 
         override fun onMessage(message: PacketRadioPlay, ctx: MessageContext): IMessage? {
-            with(message) {
-                MinecraftForge.EVENT_BUS.post(RadioInsertEvent(pos, dimension, playRadius, Sound(url, local)))
-            }
+            message.postToBus()
 
             return null
         }

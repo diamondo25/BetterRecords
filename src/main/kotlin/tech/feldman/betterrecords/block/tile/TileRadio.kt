@@ -28,6 +28,11 @@ import tech.feldman.betterrecords.block.tile.delegate.CopyOnSetDelegate
 import tech.feldman.betterrecords.helper.ConnectionHelper
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.util.math.BlockPos
+import net.minecraft.world.World
+import tech.feldman.betterrecords.helper.nbt.getSounds
+import tech.feldman.betterrecords.helper.nbt.hasSounds
+import tech.feldman.betterrecords.network.PacketRadioPlay
 
 class TileRadio : SimpleRecordWireHome(), IRecordWire {
 
@@ -93,5 +98,23 @@ class TileRadio : SimpleRecordWireHome(), IRecordWire {
         val tag = NBTTagCompound()
         stack?.writeToNBT(tag)
         return tag
+    }
+
+    override fun handleUpdateTag(tag: NBTTagCompound) {
+        super.handleUpdateTag(tag)
+
+        if (hasSounds(crystal)) {
+            getSongPacket().postToBus()
+        }
+    }
+
+    private fun getSongPacket() = getSounds(crystal).first().let {
+        PacketRadioPlay(
+            pos,
+            world.provider.dimension,
+            songRadius,
+            it.name,
+            it.url
+        )
     }
 }

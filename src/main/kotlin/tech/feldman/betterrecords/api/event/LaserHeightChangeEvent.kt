@@ -21,8 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package tech.feldman.betterrecords.extensions
+package tech.feldman.betterrecords.api.event
 
+import tech.feldman.betterrecords.api.sound.Sound
 import net.minecraft.util.math.BlockPos
+import net.minecraftforge.fml.common.eventhandler.Event
 
-fun BlockPos.distanceTo(pos: BlockPos) = getDistance(pos.x, pos.y, pos.z)
+data class LaserHeightChangeEvent(
+        val pos: BlockPos,
+        val dimension: Int,
+        val laserHeight: Int
+) : Event()

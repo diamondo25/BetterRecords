@@ -45,6 +45,9 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.IBlockAccess
 import net.minecraft.world.World
+import net.minecraftforge.client.MinecraftForgeClient
+import net.minecraftforge.common.MinecraftForge
+import tech.feldman.betterrecords.helper.nbt.hasSounds
 import java.util.*
 
 class BlockRadio(name: String) : ModBlockDirectional(Material.WOOD, name), TESRProvider<TileRadio>, ItemModelProvider {
@@ -57,8 +60,19 @@ class BlockRadio(name: String) : ModBlockDirectional(Material.WOOD, name), TESRP
     override fun getTileEntityClass() = TileRadio::class
     override fun getRenderClass() = RenderRadio::class
 
-    override fun onBlockAdded(world: World, pos: BlockPos, state: IBlockState) =
-            world.notifyBlockUpdate(pos, state, state, 3)
+    override fun onBlockAdded(world: World, pos: BlockPos, state: IBlockState) {
+        world.notifyBlockUpdate(pos, state, state, 3)
+    }
+
+    private fun getSongPacket(te: TileRadio, world: World, pos: BlockPos) = getSounds(te.crystal).first().let {
+        PacketRadioPlay(
+            pos,
+            world.provider.dimension,
+            te.songRadius,
+            it.name,
+            it.url
+        )
+    }
 
     override fun getBoundingBox(state: IBlockState, block: IBlockAccess, pos: BlockPos) = when (getMetaFromState(state)) {
         0, 2 -> AxisAlignedBB(0.13, 0.0, 0.2, 0.87, 0.98, 0.8)
@@ -84,13 +98,7 @@ class BlockRadio(name: String) : ModBlockDirectional(Material.WOOD, name), TESRP
                     world.notifyBlockUpdate(pos, state, state, 3)
                     player.heldItemMainhand.count--
                     if (!world.isRemote) {
-                        PacketHandler.sendToAll(PacketRadioPlay(
-                                pos,
-                                world.provider.dimension,
-                                te.songRadius,
-                                getSounds(te.crystal).first().name,
-                                getSounds(te.crystal).first().url
-                        ))
+                        PacketHandler.sendToAll(getSongPacket(te, world, pos))
                     }
                 }
             }

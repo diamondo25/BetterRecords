@@ -45,6 +45,10 @@ object ModConfig {
     var maxSpeakerRadius = -1
 
     @JvmField
+    @Config.Comment("Length of speaker cable")
+    var maxCableLength = 7;
+
+    @JvmField
     @Config.Comment("Should the mod download libraries from the internet or the server?")
     var useRemoteLibraries = true
 
@@ -54,7 +58,6 @@ object ModConfig {
     var client = Client()
 
     class Client {
-
         @JvmField
         @Config.Comment("Enable developer mode")
         var devMode = false

@@ -39,6 +39,9 @@ interface IRecordWireHome {
 
     val songRadius: Float
 
+    // Get the distance the volume should reach, in meters
+    fun songRadiusMeters() = songRadius / 10.0f
+
     val tileEntity: TileEntity
     val record: ItemStack
 

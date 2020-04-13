@@ -127,11 +127,11 @@ object SoundPlayer {
 
         line.start()
 
-        val buffer = ByteArray(4096)
+        val buffer = ByteArray(2048)
         var bytes = din.read(buffer)
 
         while (bytes >= 0 && isSoundPlayingAt(pos, dimension)) {
-            volumeControl.value = getVolumeForPlayerFromBlock(pos)
+            volumeControl.value = getVolumeForPlayerFromBlock(pos).coerceIn(volumeControl.minimum, volumeControl.maximum)
             line.write(buffer, 0, bytes)
             updateLights(buffer, pos, dimension)
             bytes = din.read(buffer)
@@ -153,7 +153,7 @@ object SoundPlayer {
     }
 
     private fun updateLights(buffer: ByteArray, pos: BlockPos, dimension: Int) {
-        if (Minecraft.getMinecraft().world.provider.dimension != dimension) {
+        if (Minecraft.getMinecraft().world?.provider?.dimension != dimension) {
             return
         }
 

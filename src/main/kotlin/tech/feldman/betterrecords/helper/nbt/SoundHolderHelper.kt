@@ -85,6 +85,14 @@ fun addSound(stack: ItemStack, sound: Sound) {
     stack.tagCompound = tagCompound
 }
 
+fun hasSounds(stack: ItemStack): Boolean {
+    if (stack.item !is ISoundHolder) {
+        return false
+    }
+
+    return stack.hasTagCompound() && stack.tagCompound?.getTagList(SONGS_TAG, 10)?.hasNoTags() == false
+}
+
 fun getSounds(stack: ItemStack): List<Sound> {
     if (stack.item !is ISoundHolder) {
         return emptyList()
@@ -101,10 +109,10 @@ fun getSounds(stack: ItemStack): List<Sound> {
                     .map(tagList::getCompoundTagAt)
                     .map {
                         Sound(
-                                name = it.getString(NAME_TAG),
-                                url = it.getString(URL_TAG),
-                                size = it.getInteger(SIZE_TAG),
-                                author = it.getString(AUTHOR_TAG)
+                            name = it.getString(NAME_TAG),
+                            url = it.getString(URL_TAG),
+                            size = it.getInteger(SIZE_TAG),
+                            author = it.getString(AUTHOR_TAG)
                         )
                     }
         }

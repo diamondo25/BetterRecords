@@ -63,7 +63,6 @@ class TileFrequencyTuner : ModInventoryTile(), IInventory, ITickable {
         super.readFromNBT(compound)
 
         crystal = ItemStack(getCompoundTag("crystal"))
-        crystal = ItemStack(getCompoundTag("crystal"))
     }
 
     override fun writeToNBT(compound: NBTTagCompound) = compound.apply {

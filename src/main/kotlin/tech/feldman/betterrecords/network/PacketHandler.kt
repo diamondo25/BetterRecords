@@ -41,6 +41,7 @@ object PacketHandler {
         HANDLER.registerMessage(PacketWireConnection.Handler::class.java, PacketWireConnection::class.java, 3, SERVER)
         HANDLER.registerMessage(PacketURLWrite.Handler::class.java, PacketURLWrite::class.java, 4, SERVER)
         HANDLER.registerMessage(PacketSendLibrary.Handler::class.java, PacketSendLibrary::class.java, 5, CLIENT)
+        HANDLER.registerMessage(PacketLaserUpdateHeight.Handler::class.java, PacketLaserUpdateHeight::class.java, 6, CLIENT)
     }
 
     fun sendToAll(msg: IMessage) {

@@ -39,6 +39,8 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.text.TextComponentTranslation
 import net.minecraft.world.IBlockAccess
 import net.minecraft.world.World
+import tech.feldman.betterrecords.network.PacketHandler
+import tech.feldman.betterrecords.network.PacketLaserUpdateHeight
 
 class BlockLaser(name: String) : ModBlock(Material.WOOD, name), TESRProvider<TileLaser>, ItemModelProvider {
 
@@ -85,6 +87,8 @@ class BlockLaser(name: String) : ModBlock(Material.WOOD, name), TESRProvider<Til
             }
 
             if (te.length != length && !world.isRemote) {
+                PacketHandler.sendToAll(PacketLaserUpdateHeight(te.pos, world.provider.dimension, te.length))
+
                 val adjustment = if (te.length > length) "increase" else "decrease"
                 player.sendMessage(TextComponentTranslation("tile.betterrecords:laser.msg.$adjustment", te.length))
             }
