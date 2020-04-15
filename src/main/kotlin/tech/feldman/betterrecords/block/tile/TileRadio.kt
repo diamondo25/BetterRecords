@@ -71,6 +71,8 @@ class TileRadio : SimpleRecordWireHome(), IRecordWire {
         super.update()
     }
 
+    fun rotation() = blockMetadata.toFloat()
+
     override fun readFromNBT(compound: NBTTagCompound) = compound.run {
         super.readFromNBT(compound)
 
@@ -84,7 +86,7 @@ class TileRadio : SimpleRecordWireHome(), IRecordWire {
     override fun writeToNBT(compound: NBTTagCompound) = compound.apply {
         super.writeToNBT(compound)
 
-        setFloat("rotation", blockMetadata.toFloat())
+        setFloat("rotation", rotation())
         setTag("crystal", getStackTagCompound(crystal))
         setBoolean("opening", opening)
         setString("connections", ConnectionHelper.serializeConnections(connections))

@@ -24,9 +24,9 @@
 package tech.feldman.betterrecords.client.sound
 
 import net.minecraft.client.Minecraft
-import net.minecraft.client.audio.SoundHandler
 import net.minecraft.client.audio.SoundManager
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 import net.minecraftforge.client.event.sound.SoundLoadEvent
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
@@ -41,6 +41,7 @@ import tech.feldman.betterrecords.ModConfig
 import tech.feldman.betterrecords.api.record.IRecordAmplitude
 import tech.feldman.betterrecords.api.sound.Sound
 import tech.feldman.betterrecords.api.wire.IRecordWireHome
+import tech.feldman.betterrecords.block.tile.TileRadio
 import tech.feldman.betterrecords.client.handler.ClientRenderHandler
 import tech.feldman.betterrecords.util.downloadFile
 import tech.feldman.betterrecords.util.getGainForPlayerPosition
@@ -86,9 +87,10 @@ object SoundPlayer {
     }
 
     fun playSoundFromStream(pos: BlockPos, dimension: Int, sound: Sound) {
-        tech.feldman.betterrecords.BetterRecords.logger.info("Playing sound from stream at $pos in $dimension")
+        val url = URL(if (sound.url.startsWith("http")) sound.url else "http://${sound.url}")
+        tech.feldman.betterrecords.BetterRecords.logger.info("Playing sound from stream at $pos in $dimension from $url")
 
-        val urlConn = tech.feldman.betterrecords.client.sound.IcyURLConnection(URL(if (sound.url.startsWith("http")) sound.url else "http://${sound.url}")).apply {
+        val urlConn = tech.feldman.betterrecords.client.sound.IcyURLConnection(url).apply {
             instanceFollowRedirects = true
         }
 
@@ -138,7 +140,14 @@ object SoundPlayer {
     private fun checkALError(name: String) {
         val err = AL10.alGetError()
         if (err != 0) {
-            println("Found error $err ($name)")
+            val errName = when (err) {
+                AL10.AL_INVALID_NAME -> "Invalid Name"
+                AL10.AL_INVALID_OPERATION -> "Invalid Operation"
+                AL10.AL_OUT_OF_MEMORY -> "Out of Memory"
+                AL10.AL_INVALID_VALUE -> "Invalid Value"
+                else -> "???"
+            }
+            throw Exception("Found error ${err.toString(16)} $errName ($name)")
         }
     }
 
@@ -150,7 +159,7 @@ object SoundPlayer {
         soundManager = event.manager
     }
 
-    private fun rawPlay(targetFormat: AudioFormat, din: AudioInputStream, pos: BlockPos, dimension: Int) {
+    private fun rawPlay4(targetFormat: AudioFormat, din: AudioInputStream, pos: BlockPos, dimension: Int) {
         val sndSystemField = ReflectionHelper.findField(SoundManager::class.java, "sndSystem", "field_148620_e")
         val soundSystem = sndSystemField.get(soundManager!!) as SoundSystem
 
@@ -158,8 +167,9 @@ object SoundPlayer {
 
 
         soundSystem.rawDataStream(targetFormat, true, streamName, pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat(), 0, 16.0f)
-
         soundSystem.play(streamName)
+
+
         val buffer = ByteArray(4096)
 
         var bytes = din.read(buffer)
@@ -171,19 +181,56 @@ object SoundPlayer {
             bytes = din.read(buffer)
         }
 
+        soundSystem.stop(streamName)
         stopPlayingAt(pos, dimension)
 
         din.close()
     }
 
-    private fun rawPlay3(targetFormat: AudioFormat, din: AudioInputStream, pos: BlockPos, dimension: Int) {
+    private fun rawPlay(targetFormat: AudioFormat, din: AudioInputStream, pos: BlockPos, dimension: Int) {
+
+        //val line = getLine(targetFormat)
+
+        // https://github.com/kovertopz/Paulscode-SoundSystem/
         // https://stackoverflow.com/a/5518320
         // https://github.com/kcat/openal-soft/wiki/Programmer%27s-Guide#queuing-buffers-on-a-source
         val source = AL10.alGenSources()
-        AL10.alSourcePlay(source)
-        checkALError("Source play")
+
+
         AL10.alSource3f(source, AL10.AL_POSITION, pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
-        checkALError("Set position")
+        //AL10.alSource3f(source, AL10.AL_POSITION, 0.0F, 0.0F,0.0F)
+        checkALError("position")
+
+        AL10.alSource3f(source, AL10.AL_VELOCITY, 0.0F, 0.0F,0.0F)
+        checkALError("velocity")
+
+        AL10.alSourcef(source, AL10.AL_GAIN,  1.0F)
+        checkALError("Changing gain")
+
+        AL10.alSourcef(source, AL10.AL_PITCH,  1.0F)
+        checkALError("Changing Pitch")
+
+        AL10.alSourcei(source, AL10.AL_LOOPING,  0)
+        checkALError("Changing Pitch")
+
+
+        if (Minecraft.getMinecraft().world?.provider?.dimension == dimension) {
+            val te = Minecraft.getMinecraft().world.getTileEntity(pos)
+            if (te is TileRadio) {
+
+                AL10.alSourcef(source, AL10.AL_MAX_DISTANCE, te.songRadiusMeters())
+                checkALError("Changing max distance")
+
+                val direction = Vec3d(1.0, 0.0, 0.0).rotateYaw(te.rotation()*360.0f)
+
+                AL10.alSource3f(source, AL10.AL_DIRECTION, direction.x.toFloat(), direction.y.toFloat(), direction.z.toFloat())
+                AL10.alSourcef(source, AL10.AL_CONE_OUTER_ANGLE, 135.0f)
+                AL10.alSourcef(source, AL10.AL_CONE_INNER_ANGLE, 135.0f)
+            }
+        }
+
+        var started = false
+
         val minGain = AL10.alGetSourcef(source, AL10.AL_MIN_GAIN)
         val maxGain = AL10.alGetSourcef(source, AL10.AL_MAX_GAIN)
 
@@ -195,16 +242,21 @@ object SoundPlayer {
         // NOTE: We can play (for each speaker) a sound. However, we'd need to enqueue the data to multiple sources
         // at multiple locations with multiple gains...
 
-        val queueMaxSize = 16
+        val queueMaxSize = 64
         val knownBuffers =  BufferUtils.createIntBuffer(queueMaxSize)
 
         AL10.alGenBuffers(knownBuffers)
         checkALError("Knownbuffer")
 
-        val unusedBuffers = ArrayDeque<Int>() as Queue<Int>
+        val unusedBuffers = ArrayDeque<Int>(queueMaxSize) as Queue<Int>
         (0 until queueMaxSize).forEach { x -> unusedBuffers.add(knownBuffers[x]) }
 
-        val buffer = ByteArray(4096)
+        if (unusedBuffers.size == 0) {
+            throw Exception("Unused buffers 0?")
+        }
+
+        println("Incoming data is ${targetFormat.frameSize} size, ${targetFormat.frameRate}, sampleRate ${targetFormat.sampleRate.toInt()}")
+        val buffer = ByteArray((targetFormat.sampleRate*targetFormat.frameSize*3).toInt())
 
         val bufferFormat =
             if (false) 0
@@ -214,49 +266,73 @@ object SoundPlayer {
             else if (targetFormat.channels == 2 && targetFormat.sampleSizeInBits == 16) AL10.AL_FORMAT_STEREO16
             else throw Exception("what")
 
-        var bytes = din.read(buffer)
-        while (bytes >= 0 && isSoundPlayingAt(pos, dimension)) {
+        //line.start()
+
+        var bytes = 0
+        while (isSoundPlayingAt(pos, dimension)) {
             // Get all buffers that are played, and put them back on the queue
             val processed = AL10.alGetSourcei(source, AL10.AL_BUFFERS_PROCESSED)
             checkALError("Buffers processed")
             if (processed > 0) {
                 val ib = BufferUtils.createIntBuffer(processed)
-                AL10.alSourceUnqueueBuffers(source)
-                checkALError("Unqueue buffers")
-                (0 until processed).forEach { x -> unusedBuffers.add(ib[x]) }
-            }
 
-            if (unusedBuffers.size == 0) {
-                println("!!! Unused buffers == 0")
-                // We need to wait...
-                continue
+                AL10.alSourceUnqueueBuffers(source, ib)
+                checkALError("Unqueue buffers")
+                (0 until processed).forEach { x ->
+                   // println("Writing back buffer ${ib[x]}")
+                    unusedBuffers.add(ib[x])
+                }
             }
 
             val currentVolume = getIngameVolume()
-            val currentGain = getGainForPlayerPosition(pos)
-
-            val usableBuffer = unusedBuffers.poll()
-
-            AL10.alSourcef(source, AL10.AL_GAIN,  1.0F)
+            AL10.alSourcef(source, AL10.AL_GAIN, currentVolume)
             checkALError("Changing gain")
 
-            val buf = ByteBuffer.allocateDirect(bytes).put(buffer, 0, bytes)
+            while (!unusedBuffers.isEmpty()) {
+                bytes = din.read(buffer)
+                if (bytes <= 0) break
 
-            AL10.alBufferData(
-                usableBuffer.toInt(),
-                bufferFormat,
-                buf,
-                (targetFormat.sampleRate).toInt()
-            )
-            checkALError("Setting albufferdata")
+                //val currentGain = getGainForPlayerPosition(pos)
+                // println((currentGain/NoVolume))
+                //AL10.alSourcef(source, AL10.AL_GAIN, (1.0f-(currentGain/NoVolume)).coerceIn(0.0f, 1.0f)*currentVolume)
 
 
-            updateLights(buffer, pos, dimension)
-            bytes = din.read(buffer)
+
+                val usableBuffer = unusedBuffers.poll()
+
+                val buf = ByteBuffer.allocateDirect(bytes).put(buffer, 0, bytes)
+                buf.flip()
+                // Reset buffer for next read action
+                bytes = 0
+
+                // println("Writing chunk to buffer ${usableBuffer.toInt()}, ${AL10.alIsBuffer(usableBuffer.toInt())}.")
+                AL10.alBufferData(
+                        usableBuffer.toInt(),
+                        bufferFormat,
+                        buf,
+                        (targetFormat.sampleRate).toInt()
+                )
+                checkALError("Setting albufferdata")
+
+                AL10.alSourceQueueBuffers(source, usableBuffer.toInt())
+                checkALError("Queued")
+
+                updateLights(buffer, pos, dimension)
+
+                if (!started) {
+                    started = true
+
+                    AL10.alSourcePlay(source)
+                    checkALError("Source play")
+                }
+            }
         }
 
         stopPlayingAt(pos, dimension)
 
+//        line.drain()
+//        line.stop()
+//        line.close()
         din.close()
         AL10.alSourceStop(source)
         AL10.alDeleteBuffers(knownBuffers)
