@@ -29,7 +29,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.util.math.BlockPos
 import org.lwjgl.opengl.GL11
-import tech.feldman.betterrecords.util.getVolumeForPlayerFromBlock
+import tech.feldman.betterrecords.util.getGainForPlayerPosition
 
 fun renderConnectionsAndInfo(te: IRecordWireHome, pos: BlockPos, x: Double, y: Double, z: Double) {
     (Minecraft.getMinecraft().player.heldItemMainhand.item as? IRecordWireManipulator)?.let {
@@ -71,7 +71,7 @@ fun renderConnectionsAndInfo(te: IRecordWireHome, pos: BlockPos, x: Double, y: D
         var currentY = te.wireSystemInfo.size * -10 - 75
         val fontRenderer = Minecraft.getMinecraft().fontRenderer
 
-        val radiusString = "Play audio: ${getVolumeForPlayerFromBlock(pos)}dB"
+        val radiusString = "Play audio: ${getGainForPlayerPosition(pos)}dB"
         fontRenderer.drawString(radiusString, -fontRenderer.getStringWidth(radiusString) / 2, currentY, 0xFFFFFF)
 
         for (info in te.wireSystemInfo.entries) {

@@ -23,23 +23,38 @@
  */
 package tech.feldman.betterrecords.client.sound
 
-import tech.feldman.betterrecords.BetterRecords
+import net.minecraft.client.Minecraft
+import net.minecraft.client.audio.SoundHandler
+import net.minecraft.client.audio.SoundManager
+import net.minecraft.util.math.BlockPos
+import net.minecraftforge.client.event.sound.SoundLoadEvent
+import net.minecraftforge.fml.common.Mod
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+import net.minecraftforge.fml.relauncher.ReflectionHelper
+import net.minecraftforge.fml.relauncher.Side
+import org.apache.commons.io.FilenameUtils
+import org.lwjgl.BufferUtils
+import org.lwjgl.openal.AL10
+import paulscode.sound.SoundSystem
+import tech.feldman.betterrecords.ID
 import tech.feldman.betterrecords.ModConfig
 import tech.feldman.betterrecords.api.record.IRecordAmplitude
 import tech.feldman.betterrecords.api.sound.Sound
 import tech.feldman.betterrecords.api.wire.IRecordWireHome
 import tech.feldman.betterrecords.client.handler.ClientRenderHandler
 import tech.feldman.betterrecords.util.downloadFile
-import tech.feldman.betterrecords.util.getVolumeForPlayerFromBlock
-import net.minecraft.client.Minecraft
-import net.minecraft.util.math.BlockPos
-import org.apache.commons.io.FilenameUtils
+import tech.feldman.betterrecords.util.getGainForPlayerPosition
+import tech.feldman.betterrecords.util.getIngameVolume
 import java.io.File
 import java.io.InputStream
 import java.net.URL
+import java.nio.ByteBuffer
+import java.util.*
 import javax.sound.sampled.*
+import kotlin.collections.HashMap
 import kotlin.math.absoluteValue
 
+@Mod.EventBusSubscriber(modid = ID, value = [Side.CLIENT])
 object SoundPlayer {
 
     private val downloadFolder = File(Minecraft.getMinecraft().mcDataDir, "betterrecords/cache")
@@ -120,10 +135,155 @@ object SoundPlayer {
         ain.close()
     }
 
-    private fun rawPlay(targetFormat: AudioFormat, din: AudioInputStream, pos: BlockPos, dimension: Int) {
-        val line = getLine(targetFormat)
+    private fun checkALError(name: String) {
+        val err = AL10.alGetError()
+        if (err != 0) {
+            println("Found error $err ($name)")
+        }
+    }
 
-        val volumeControl = line.getControl(FloatControl.Type.MASTER_GAIN) as FloatControl
+    private var soundManager: net.minecraft.client.audio.SoundManager? = null
+
+    @SubscribeEvent
+    fun onSoundLoadEvent(event: SoundLoadEvent) {
+        println("Sound manager loaded.")
+        soundManager = event.manager
+    }
+
+    private fun rawPlay(targetFormat: AudioFormat, din: AudioInputStream, pos: BlockPos, dimension: Int) {
+        val sndSystemField = ReflectionHelper.findField(SoundManager::class.java, "sndSystem", "field_148620_e")
+        val soundSystem = sndSystemField.get(soundManager!!) as SoundSystem
+
+        val streamName = "radio538"
+
+
+        soundSystem.rawDataStream(targetFormat, true, streamName, pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat(), 0, 16.0f)
+
+        soundSystem.play(streamName)
+        val buffer = ByteArray(4096)
+
+        var bytes = din.read(buffer)
+        while (bytes >= 0 && isSoundPlayingAt(pos, dimension)) {
+
+            soundSystem.feedRawAudioData(streamName, buffer)
+
+            updateLights(buffer, pos, dimension)
+            bytes = din.read(buffer)
+        }
+
+        stopPlayingAt(pos, dimension)
+
+        din.close()
+    }
+
+    private fun rawPlay3(targetFormat: AudioFormat, din: AudioInputStream, pos: BlockPos, dimension: Int) {
+        // https://stackoverflow.com/a/5518320
+        // https://github.com/kcat/openal-soft/wiki/Programmer%27s-Guide#queuing-buffers-on-a-source
+        val source = AL10.alGenSources()
+        AL10.alSourcePlay(source)
+        checkALError("Source play")
+        AL10.alSource3f(source, AL10.AL_POSITION, pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+        checkALError("Set position")
+        val minGain = AL10.alGetSourcef(source, AL10.AL_MIN_GAIN)
+        val maxGain = AL10.alGetSourcef(source, AL10.AL_MAX_GAIN)
+
+        println("min gain: ${minGain} - max gain: ${maxGain}")
+
+        // Effects go on source
+        // https://github.com/LWJGL/lwjgl/blob/master/src/java/org/lwjgl/test/openal/EFX10Test.java#L308
+
+        // NOTE: We can play (for each speaker) a sound. However, we'd need to enqueue the data to multiple sources
+        // at multiple locations with multiple gains...
+
+        val queueMaxSize = 16
+        val knownBuffers =  BufferUtils.createIntBuffer(queueMaxSize)
+
+        AL10.alGenBuffers(knownBuffers)
+        checkALError("Knownbuffer")
+
+        val unusedBuffers = ArrayDeque<Int>() as Queue<Int>
+        (0 until queueMaxSize).forEach { x -> unusedBuffers.add(knownBuffers[x]) }
+
+        val buffer = ByteArray(4096)
+
+        val bufferFormat =
+            if (false) 0
+            else if (targetFormat.channels == 1 && targetFormat.sampleSizeInBits == 8) AL10.AL_FORMAT_MONO8
+            else if (targetFormat.channels == 1 && targetFormat.sampleSizeInBits == 16) AL10.AL_FORMAT_MONO16
+            else if (targetFormat.channels == 2 && targetFormat.sampleSizeInBits == 8) AL10.AL_FORMAT_STEREO8
+            else if (targetFormat.channels == 2 && targetFormat.sampleSizeInBits == 16) AL10.AL_FORMAT_STEREO16
+            else throw Exception("what")
+
+        var bytes = din.read(buffer)
+        while (bytes >= 0 && isSoundPlayingAt(pos, dimension)) {
+            // Get all buffers that are played, and put them back on the queue
+            val processed = AL10.alGetSourcei(source, AL10.AL_BUFFERS_PROCESSED)
+            checkALError("Buffers processed")
+            if (processed > 0) {
+                val ib = BufferUtils.createIntBuffer(processed)
+                AL10.alSourceUnqueueBuffers(source)
+                checkALError("Unqueue buffers")
+                (0 until processed).forEach { x -> unusedBuffers.add(ib[x]) }
+            }
+
+            if (unusedBuffers.size == 0) {
+                println("!!! Unused buffers == 0")
+                // We need to wait...
+                continue
+            }
+
+            val currentVolume = getIngameVolume()
+            val currentGain = getGainForPlayerPosition(pos)
+
+            val usableBuffer = unusedBuffers.poll()
+
+            AL10.alSourcef(source, AL10.AL_GAIN,  1.0F)
+            checkALError("Changing gain")
+
+            val buf = ByteBuffer.allocateDirect(bytes).put(buffer, 0, bytes)
+
+            AL10.alBufferData(
+                usableBuffer.toInt(),
+                bufferFormat,
+                buf,
+                (targetFormat.sampleRate).toInt()
+            )
+            checkALError("Setting albufferdata")
+
+
+            updateLights(buffer, pos, dimension)
+            bytes = din.read(buffer)
+        }
+
+        stopPlayingAt(pos, dimension)
+
+        din.close()
+        AL10.alSourceStop(source)
+        AL10.alDeleteBuffers(knownBuffers)
+    }
+
+    private fun rawPlay2(targetFormat: AudioFormat, din: AudioInputStream, pos: BlockPos, dimension: Int) {
+        val line = getLine(targetFormat)
+        val defaultMixer = AudioSystem.getMixer(null)
+        val outputLine = defaultMixer.runCatching { getLine(Port.Info.LINE_OUT)}.getOrNull()
+
+        val gainControl = line.getControl(FloatControl.Type.MASTER_GAIN) as FloatControl
+        val volumeControl = outputLine?.getControl(FloatControl.Type.VOLUME) as FloatControl?
+
+
+        val reverbControl = line.runCatching { getControl(EnumControl.Type.REVERB) as EnumControl}
+        //reverbControl.value = ReverbType("Cave", 2250, -2.0f, 41300, -1.4f, 10300)
+
+        reverbControl.onSuccess { reverbCtrl ->
+            reverbCtrl.values.map { x -> x as ReverbType }.forEach {
+                println("Got ReverbType ${it.name}")
+                if (it.decayTime > 2000) {
+                    // Cavern?
+                    println("Trying to set cavern type")
+                    reverbCtrl.value = it
+                }
+            }
+        }
 
         line.start()
 
@@ -131,7 +291,8 @@ object SoundPlayer {
         var bytes = din.read(buffer)
 
         while (bytes >= 0 && isSoundPlayingAt(pos, dimension)) {
-            volumeControl.value = getVolumeForPlayerFromBlock(pos).coerceIn(volumeControl.minimum, volumeControl.maximum)
+            volumeControl?.value = getIngameVolume()
+            gainControl.value = getGainForPlayerPosition(pos).coerceIn(gainControl.minimum, gainControl.maximum)
             line.write(buffer, 0, bytes)
             updateLights(buffer, pos, dimension)
             bytes = din.read(buffer)

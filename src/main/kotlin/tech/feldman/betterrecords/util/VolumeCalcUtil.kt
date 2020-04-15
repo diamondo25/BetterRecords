@@ -49,8 +49,14 @@ fun getSPLOverDistance(baseSPL: Double, distanceMeter: Double): Double {
 @Suppress("ReplaceJavaStaticMethodWithKotlinAnalog")
 fun calcCoherentPressure(vararg SPLs: Double): Double = 20.0 * log10(SPLs.sumByDouble { x -> Math.pow(10.0, x / 20.0) })
 
+fun getIngameVolume(): Float {
+    val gs = Minecraft.getMinecraft().gameSettings
+    val userMultiplier = gs.getSoundLevel(SoundCategory.MASTER) * gs.getSoundLevel(SoundCategory.RECORDS)
 
-fun getVolumeForPlayerFromBlock(pos: BlockPos): Float {
+    return userMultiplier
+}
+
+fun getGainForPlayerPosition(pos: BlockPos): Float {
     val player = Minecraft.getMinecraft().player
     val world = Minecraft.getMinecraft().world
 
@@ -75,23 +81,19 @@ fun getVolumeForPlayerFromBlock(pos: BlockPos): Float {
             // Distance in minecraft even for small is huge, so sound fades to quick
             val d = (playerHeadPos.distanceTo(pos) / 1.5)
 
-            // Todo: use speaker range
-            val speakerDb = 70.0
+            // Todo: use sane values for speaker loudness
+            val speakerDb = 90.0
 
 
             getSPLOverDistance(speakerDb, d)
         }
     }.toDoubleArray()
 
-    // Take into account the user's settings
-    val gs = Minecraft.getMinecraft().gameSettings
-    val userMultiplier = gs.getSoundLevel(SoundCategory.MASTER) * gs.getSoundLevel(SoundCategory.RECORDS)
-
     val audibleDb = calcCoherentPressure(
         // Calculate SPL for the radio
         getSPLOverDistance(radioDb, distanceToRadio),
         *speakersDb
-    ) * userMultiplier
+    )
 
     val ret =  NoVolume + audibleDb.toFloat()
 

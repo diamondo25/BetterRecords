@@ -24,3 +24,6 @@ Developing / Compiling
 [discord badge]: https://img.shields.io/discord/392066220259803156.svg?colorB=7289DA "Discord Badge"
 [circle]: https://circleci.com/gh/NicholasFeldman/BetterRecords
 [circle badge]: https://circleci.com/gh/NicholasFeldman/BetterRecords.svg?style=svg
+
+## Release
+To release the jar run: `gradle reobfShadowJar`
