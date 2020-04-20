@@ -37,55 +37,56 @@ import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
+import tech.feldman.betterrecords.ModConfig
 
 class ItemWire(name: String) : ModItem(name), IRecordWireManipulator {
-
-    var maxCableLen = 7;
-
-    companion object {
-        var connection: RecordConnection? = null
-    }
+    var firstPosition: BlockPos? = null
 
     override fun onItemUse(player: EntityPlayer, world: World, pos: BlockPos, hand: EnumHand, facing: EnumFacing, hitX: Float, hitY: Float, hitZ: Float): EnumActionResult {
         if (!world.isRemote) {
             return EnumActionResult.PASS
         }
 
-        (world.getTileEntity(pos) as? IRecordWire)?.let { te ->
-            connection?.let {
+        val te = world.getTileEntity(pos)
+        if (te is IRecordWire) {
+            firstPosition?.let { firstPos ->
 
-                val x1 = -(pos.x - if (it.fromHome) it.x1 else it.x2).toFloat()
-                val y1 = -(pos.y - if (it.fromHome) it.y1 else it.y2).toFloat()
-                val z1 = -(pos.z - if (it.fromHome) it.z1 else it.z2).toFloat()
+                val distance = firstPos.getDistance(pos.x, pos.y, pos.z)
 
-                if (Math.sqrt(Math.pow(x1.toDouble(), 2.toDouble()) + Math.pow(y1.toDouble(), 2.toDouble()) + Math.pow(z1.toDouble(), 2.toDouble())) > maxCableLen || it.sameInitial(pos.x, pos.y, pos.z)) {
-                    connection = null
+                if (distance == 0.0) {
+                    // Trying to connect to the same object
+                    println("Cable connecting to same object")
                     return EnumActionResult.PASS
                 }
 
-                if (!it.fromHome) {
-                    it.setConnection1(pos.x, pos.y, pos.z)
+                if (distance > ModConfig.maxCableLength) {
+                    // Cable too long
+                    println("Cable too long")
+                    return EnumActionResult.PASS
+                }
+
+                // Setup initial connection object
+                val connection = if (te !is IRecordWireHome) {
+                    RecordConnection(firstPos, pos)
                 } else {
-                    it.setConnection2(pos.x, pos.y, pos.z)
+                    RecordConnection(pos, firstPos)
                 }
 
-                val te1 = world.getTileEntity(BlockPos(it.x1, it.y1, it.z1))
-                val te2 = world.getTileEntity(BlockPos(it.x2, it.y2, it.z2))
+                // Assign connections to both objects
+                val homeTileEntity = world.getTileEntity(connection.getHomePosition()) as IRecordWire
+                val toTileEntity = world.getTileEntity(connection.getToPosition()) as IRecordWire
+                ConnectionHelper.addConnection(world, homeTileEntity, connection, world.getBlockState(connection.getHomePosition()))
+                ConnectionHelper.addConnection(world, toTileEntity, connection, world.getBlockState(connection.getToPosition()))
 
-                if (te2 is IRecordWire) {
-                    if (!(te1 is IRecordWireHome && te2 is IRecordWireHome)) {
-                        ConnectionHelper.addConnection((te as TileEntity).world, te1 as IRecordWire, connection!!, world.getBlockState(te.pos))
-                        ConnectionHelper.addConnection((te as TileEntity).world, te2 as IRecordWire, connection!!, world.getBlockState(te.pos))
-                        PacketHandler.sendToServer(PacketWireConnection(connection!!))
-                        player.getHeldItem(hand).count--
-                    }
-                }
+                PacketHandler.sendToServer(PacketWireConnection(connection))
+                player.getHeldItem(hand).count--
 
-                connection = null
+                println("Bound ${homeTileEntity} to ${toTileEntity}")
+                firstPosition = null
                 return EnumActionResult.PASS
             }
 
-            connection = RecordConnection(pos.x, pos.y, pos.z, te is IRecordWireHome)
+            firstPosition = pos
         }
 
         return EnumActionResult.PASS

@@ -141,18 +141,24 @@ object ConnectionHelper {
             }
     }
 
-    fun clearConnections(world: World, iRecordWire: IRecordWire) {
-        while (iRecordWire.connections.size != 0) {
-            val connection = iRecordWire.connections[0]
-            val te = world.getTileEntity(BlockPos(connection.x1, connection.y1, connection.z1))
-            if (te != null && te is IRecordWire) {
+    fun clearConnections(world: World, iRecordWire: IRecordWire, cleanupOnly: Boolean) {
+        println("Start connection count ${iRecordWire.connections.size}")
+        iRecordWire.connections.removeAll(iRecordWire.connections.filter { connection ->
+            val te = world.getTileEntity(connection.getToPosition())
+
+            if (te == null || te !is IRecordWire) {
+                System.err.println("Warning on clearing connections: Attached block is not a member of IRecordWire! This may cause ghost connections until a relog!")
+                true
+            } else if (cleanupOnly) {
+                false
+            } else {
                 removeConnection(world, iRecordWire, connection)
                 world.notifyBlockUpdate(te.pos, world.getBlockState(te.pos), world.getBlockState(te.pos), 3)
-            } else {
-                System.err.println("Warning on clearing connections: Attached block is not a member of IRecordWire! This may cause ghost connections until a relog!")
-                iRecordWire.connections.removeAt(0)
+                true
             }
-        }
+        })
+
+        println("End connection count ${iRecordWire.connections.size}")
         val pos = (iRecordWire as TileEntity).pos
         world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3)
     }

@@ -45,8 +45,6 @@ class RenderSpeaker : TileEntitySpecialRenderer<TileSpeaker>() {
     val TEXTURE_LG = ResourceLocation(ID, "textures/models/lgspeaker.png")
 
     override fun render(te: TileSpeaker?, x: Double, y: Double, z: Double, partialTicks: Float, destroyStage: Int, alpha: Float) {
-
-
         pushMatrix()
 
         translate(x + 0.5, y + 1.5, z + 0.5)

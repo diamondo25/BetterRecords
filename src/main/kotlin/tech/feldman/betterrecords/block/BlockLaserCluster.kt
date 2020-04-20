@@ -56,7 +56,7 @@ class BlockLaserCluster(name: String) : ModBlock(Material.WOOD, name), TESRProvi
     override fun removedByPlayer(state: IBlockState, world: World, pos: BlockPos, player: EntityPlayer, willHarvest: Boolean): Boolean {
         if (!world.isRemote) {
             (world.getTileEntity(pos) as? IRecordWire)?.let { te ->
-                ConnectionHelper.clearConnections(world, te)
+                ConnectionHelper.clearConnections(world, te, cleanupOnly = false)
             }
         }
         return super.removedByPlayer(state, world, pos, player, willHarvest)

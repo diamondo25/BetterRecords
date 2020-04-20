@@ -38,12 +38,15 @@ import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.relauncher.Side
 import org.lwjgl.opengl.GL11
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Mod.EventBusSubscriber(modid = ID, value = [Side.CLIENT])
 object RenderEventHandler {
 
     @SubscribeEvent
     fun onRenderEvent(event: RenderWorldLastEvent) {
+        /*
         val mc = Minecraft.getMinecraft()
         ItemWire.connection?.let {
             if (mc.player.heldItemMainhand.isEmpty || mc.player.heldItemMainhand.item !is ItemWire) {
@@ -92,13 +95,13 @@ object RenderEventHandler {
                                     GL11.glBegin(GL11.GL_QUAD_STRIP)
                                     var theta = 0.0
                                     while (theta <= Math.PI * 2 + factor) {
-                                        var x = rad.toDouble() * Math.sin(phi) * Math.cos(theta)
-                                        var y = -rad * Math.cos(phi)
-                                        var z = rad.toDouble() * Math.sin(phi) * Math.sin(theta)
+                                        var x = rad.toDouble() * sin(phi) * cos(theta)
+                                        var y = -rad * cos(phi)
+                                        var z = rad.toDouble() * sin(phi) * sin(theta)
                                         GL11.glVertex3d(x, y, z)
-                                        x = rad.toDouble() * Math.sin(phi + factor) * Math.cos(theta)
-                                        y = -rad * Math.cos(phi + factor)
-                                        z = rad.toDouble() * Math.sin(phi + factor) * Math.sin(theta)
+                                        x = rad.toDouble() * sin(phi + factor) * cos(theta)
+                                        y = -rad * cos(phi + factor)
+                                        z = rad.toDouble() * sin(phi + factor) * sin(theta)
                                         GL11.glVertex3d(x, y, z)
                                         theta += factor
                                     }
@@ -121,5 +124,7 @@ object RenderEventHandler {
                 }
             }
         }
+
+         */
     }
 }

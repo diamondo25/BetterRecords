@@ -53,7 +53,7 @@ abstract class ModBlock(material: Material, open val name: String) : BlockContai
         setRegistryName("betterrecords:$name")
         unlocalizedName = registryName.toString()
 
-        setCreativeTab(tech.feldman.betterrecords.BetterRecords.creativeTab)
+        setCreativeTab(BetterRecords.creativeTab)
     }
 
     /**

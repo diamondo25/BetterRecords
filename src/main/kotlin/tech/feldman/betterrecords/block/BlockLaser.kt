@@ -23,11 +23,9 @@
  */
 package tech.feldman.betterrecords.block
 
-import tech.feldman.betterrecords.api.wire.IRecordWire
-import tech.feldman.betterrecords.block.tile.TileLaser
-import tech.feldman.betterrecords.client.render.RenderLaser
-import tech.feldman.betterrecords.helper.ConnectionHelper
 import net.minecraft.block.material.Material
+import net.minecraft.block.properties.PropertyDirection
+import net.minecraft.block.state.BlockStateContainer
 import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.player.EntityPlayer
@@ -39,14 +37,22 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.text.TextComponentTranslation
 import net.minecraft.world.IBlockAccess
 import net.minecraft.world.World
+import tech.feldman.betterrecords.api.wire.IRecordWire
+import tech.feldman.betterrecords.block.tile.TileLaser
+import tech.feldman.betterrecords.client.render.RenderLaser
+import tech.feldman.betterrecords.helper.ConnectionHelper
 import tech.feldman.betterrecords.network.PacketHandler
 import tech.feldman.betterrecords.network.PacketLaserUpdateHeight
 
 class BlockLaser(name: String) : ModBlock(Material.WOOD, name), TESRProvider<TileLaser>, ItemModelProvider {
+    companion object {
+        val MOUNTING = PropertyDirection.create("mounting")
+    }
 
     init {
         setHardness(3.2f)
         setResistance(4.3f)
+        defaultState = blockState.baseState.withProperty(MOUNTING, EnumFacing.DOWN)
     }
 
     override fun getTileEntityClass() = TileLaser::class
@@ -60,17 +66,43 @@ class BlockLaser(name: String) : ModBlock(Material.WOOD, name), TESRProvider<Til
 
     // override fun getLightValue(state: IBlockState, access: IBlockAccess, pos: BlockPos): Int TODO: value from flash
 
+    override fun getStateForPlacement(world: World, pos: BlockPos, facing: EnumFacing, hitX: Float, hitY: Float, hitZ: Float, meta: Int, placer: EntityLivingBase, hand: EnumHand): IBlockState {
+        val oppositeFacing = facing.opposite
+        return super.getStateForPlacement(world, pos, facing, hitX, hitY, hitZ, meta, placer, hand).withProperty(MOUNTING, oppositeFacing)
+    }
+
+    override fun createBlockState(): BlockStateContainer? {
+        return BlockStateContainer(this, MOUNTING)
+    }
+
+    override fun getMetaFromState(state: IBlockState): Int {
+        var i = 0
+        i = i or (state.getValue(MOUNTING) as EnumFacing).index
+        return i
+    }
+
     override fun onBlockPlacedBy(world: World, pos: BlockPos, state: IBlockState, entityLiving: EntityLivingBase, itemStack: ItemStack) {
         (world.getTileEntity(pos) as? TileLaser)?.let { te ->
             te.pitch = entityLiving.rotationPitch
             te.yaw = entityLiving.rotationYaw
+
+            println("Changing mounting to ${state.getValue(MOUNTING)}")
+            te.mounting = when (state.getValue(MOUNTING)) {
+                EnumFacing.DOWN -> TileLaser.Mounting.FLOOR
+                EnumFacing.UP -> TileLaser.Mounting.CEILING
+                EnumFacing.EAST -> TileLaser.Mounting.EAST
+                EnumFacing.NORTH -> TileLaser.Mounting.NORTH
+                EnumFacing.SOUTH -> TileLaser.Mounting.SOUTH
+                EnumFacing.WEST -> TileLaser.Mounting.WEST
+                else -> TileLaser.Mounting.FLOOR
+            }
         }
     }
 
     override fun removedByPlayer(state: IBlockState, world: World, pos: BlockPos, player: EntityPlayer, willHarvest: Boolean): Boolean {
         if (!world.isRemote) {
             (world.getTileEntity(pos) as? IRecordWire)?.let { te ->
-                ConnectionHelper.clearConnections(world, te)
+                ConnectionHelper.clearConnections(world, te, cleanupOnly = false)
             }
         }
         return super.removedByPlayer(state, world, pos, player, willHarvest)

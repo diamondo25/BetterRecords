@@ -37,14 +37,16 @@ import net.minecraft.world.World
 class ItemWireCutter(name: String) : ModItem(name), IRecordWireManipulator {
 
     override fun onItemUse(player: EntityPlayer, world: World, pos: BlockPos, hand: EnumHand, facing: EnumFacing, hitX: Float, hitY: Float, hitZ: Float): EnumActionResult {
-        val te = world.getTileEntity(pos)
-        if (te == null || te !is IRecordWire || te is IRecordWireHome)
-            return EnumActionResult.PASS
+        val te = world.getTileEntity(pos) ?: return EnumActionResult.PASS
 
         if (world.isRemote)
             return EnumActionResult.PASS
 
-        ConnectionHelper.clearConnections(te.world, te as IRecordWire)
+        if (te is IRecordWire) {
+            // For IRecordWireHome, we want to cleanup only (otherwise everything gets disconnected)
+            ConnectionHelper.clearConnections(te.world, te, cleanupOnly = te is IRecordWireHome)
+        }
+
         return EnumActionResult.PASS
     }
 }

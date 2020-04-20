@@ -30,6 +30,8 @@ import tech.feldman.betterrecords.helper.ConnectionHelper
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.util.ITickable
 import java.util.*
+import kotlin.math.pow
+import kotlin.math.sin
 
 class TileLaser : ModTile(), IRecordWire, IRecordAmplitude, ITickable {
 
@@ -38,32 +40,56 @@ class TileLaser : ModTile(), IRecordWire, IRecordAmplitude, ITickable {
     var pitch = 0F
     var yaw = 0F
 
+    var mounting: Mounting = Mounting.FLOOR
+
     var length = 10
 
     var r = 0F
     var g = 0F
     var b = 0F
 
+    class MovementInfo(val maxDegrees: Float, val speed: Float) {
+        var current = 0F
+
+        private val startOffset = Random().nextInt() % 2000
+
+        init {
+            update(0)
+        }
+
+        fun update(tickCount: Int) {
+            val actualTC = startOffset + tickCount
+            current = sin(actualTC * 0.3f * speed) * maxDegrees
+        }
+    }
+
+    private val animRandom = Random()
+
+    val pitchAnim = MovementInfo(10F + animRandom.nextFloat() * 10f, animRandom.nextFloat())
+    val yawAnim = MovementInfo(10F + animRandom.nextFloat() * 10f, animRandom.nextFloat())
+
+    var animationTicks = 0
+
     override var treble = 0F
     override var bass = 0F
         set(value) {
             field = value
 
-            Random(value.toLong() + System.nanoTime()).run {
+            animRandom.run {
                 r = nextFloat()
                 g = nextFloat()
                 b = nextFloat()
             }
 
-            Random().nextInt().also {
+            animRandom.nextInt().also {
                 r += if (it == 0) .3f else -.1f
                 g += if (it == 1) .3f else -.1f
                 b += if (it == 2) .3f else -.1f
             }
 
-            if (r < .2F) r += r
-            if (g < .2F) g += g
-            if (b < .2F) b += b
+            r = r.coerceIn(.3F, 1F)
+            g = g.coerceIn(.3F, 1F)
+            b = b.coerceIn(.3F, 1F)
         }
 
     override fun getName() = "Laser"
@@ -73,6 +99,10 @@ class TileLaser : ModTile(), IRecordWire, IRecordAmplitude, ITickable {
     override fun update() {
         if (bass > 0) bass--
         if (bass < 0) bass = 0F
+
+        animationTicks++
+        yawAnim.update(animationTicks)
+        pitchAnim.update(animationTicks)
     }
 
     override fun readFromNBT(compound: NBTTagCompound) = compound.run {
@@ -82,6 +112,13 @@ class TileLaser : ModTile(), IRecordWire, IRecordAmplitude, ITickable {
         pitch = getFloat("pitch")
         yaw = getFloat("yaw")
         length = getInteger("length")
+
+        mounting = try {
+            Mounting.byName(getString("mounting"))
+        } catch (e: Exception) {
+            // Default to floor mounting
+            Mounting.FLOOR
+        }
     }
 
     override fun writeToNBT(compound: NBTTagCompound) = compound.apply {
@@ -91,5 +128,32 @@ class TileLaser : ModTile(), IRecordWire, IRecordAmplitude, ITickable {
         setFloat("pitch", pitch)
         setFloat("yaw", yaw)
         setInteger("length", length)
+        setString("mounting", mounting.nbtName)
+    }
+
+
+    enum class Mounting(val nbtName: String) {
+        CEILING("ceiling"),
+        FLOOR("floor"),
+        NORTH("north"),
+        EAST("east"),
+        SOUTH("south"),
+        WEST("west");
+
+        // Yaw first, then Pitch
+        fun getPitchAndYaw(): Pair<Float, Float> {
+            return when (this) {
+                CEILING -> Pair(180f, 0f)
+                NORTH -> Pair(90f, 0f)
+                EAST -> Pair(90f, 90f)
+                SOUTH -> Pair(270f, 0f)
+                WEST -> Pair(270f, 90f)
+                else -> Pair(0f, 0f)
+            }
+        }
+
+        companion object {
+            fun byName(n: String) = values().find { x -> x.nbtName == n }!!
+        }
     }
 }

@@ -405,9 +405,12 @@ object SoundPlayer {
 
         val te = Minecraft.getMinecraft().world.getTileEntity(pos)
 
+        val treble = getUnscaledWaveform(buffer, true, false)
+        val bass = getUnscaledWaveform(buffer, false, false)
+
         (te as? IRecordWireHome)?.let {
-            te.addTreble(getUnscaledWaveform(buffer, true, false))
-            te.addBass(getUnscaledWaveform(buffer, false, false))
+            te.addTreble(treble)
+            te.addBass(bass)
 
             for (connection in te.connections) {
                 val connectedTe = Minecraft.getMinecraft().world.getTileEntity(BlockPos(connection.x2, connection.y2, connection.z2))

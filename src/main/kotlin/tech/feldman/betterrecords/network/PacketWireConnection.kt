@@ -35,7 +35,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 
 class PacketWireConnection @JvmOverloads constructor(
-        var connection: RecordConnection = RecordConnection(0, 0, 0, true)
+        var connection: RecordConnection = RecordConnection()
 ) : IMessage {
 
     override fun toBytes(buf: ByteBuf) {
@@ -52,8 +52,8 @@ class PacketWireConnection @JvmOverloads constructor(
             val player = ctx.serverHandler.player
 
             with(message) {
-                val te1 = player.world.getTileEntity(BlockPos(connection.x1, connection.y1, connection.z1))
-                val te2 = player.world.getTileEntity(BlockPos(connection.x2, connection.y2, connection.z2))
+                val te1 = player.world.getTileEntity(connection.getHomePosition())
+                val te2 = player.world.getTileEntity(connection.getToPosition())
 
                 if (te1 is IRecordWire && te2 is IRecordWire) {
                     if (!(te1 is IRecordWireHome && te2 is IRecordWireHome)) {
