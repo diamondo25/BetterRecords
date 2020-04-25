@@ -80,8 +80,8 @@ public class IcyURLConnection extends HttpURLConnection {
         socket = createSocket();
 
         socket.connect(
-                new InetSocketAddress(url.getHost(), url.getPort() != -1 ? url.getPort() : url.getDefaultPort()),
-                getConnectTimeout());
+            new InetSocketAddress(url.getHost(), url.getPort() != -1 ? url.getPort() : url.getDefaultPort()),
+            getConnectTimeout());
 
         Map<String, List<String>> requestProps = getRequestProperties();
 
@@ -92,7 +92,19 @@ public class IcyURLConnection extends HttpURLConnection {
         outputStream = socket.getOutputStream();
         inputStream = socket.getInputStream();
 
-        writeLine("GET " + ("".equals(url.getPath()) ? "/" : url.getPath()) + " HTTP/1.1");
+
+        String requestPath = url.getPath();
+        // We need to set the slash if no path was given
+        if ("".equals(requestPath)) requestPath = "/";
+
+        // Append the query string, if any
+        String query = url.getQuery();
+        if (query != null && !query.equals("")) {
+            requestPath += "?" + query;
+        }
+
+        // Use HTTP 1.0 because of no Transfer-Encoding: chunked
+        writeLine("GET " + requestPath + " HTTP/1.0");
         writeLine("Host: " + url.getHost());
         writeLine("Accept: */*");
 
@@ -227,17 +239,12 @@ public class IcyURLConnection extends HttpURLConnection {
      * Reads one response header line and adds it to the headers map.
      */
     protected void parseHeaderLine(String line) {
-        int len = 2;
-        int n = line.indexOf(": ");
+        int n = line.indexOf(":");
+        if (n == -1) return;
 
-        if (n == -1) {
-            len = 1;
-            n = line.indexOf(':');
-            if (n == -1) return;
-        }
-
-        String key = line.substring(0, n).toLowerCase();
-        String val = line.substring(n + len);
+        // Make the header key lowercase, so we can find it easier afterwards
+        String key = line.substring(0, n).toLowerCase().trim();
+        String val = line.substring(n + 1).trim();
 
         List<String> list = headers.get(key);
 
@@ -272,7 +279,7 @@ public class IcyURLConnection extends HttpURLConnection {
     /**
      * Reads one response line.
      *
-     * @return the line without any new-line character.
+     * @return the line without any newline character.
      */
     private String readLine() throws IOException {
         StringBuilder sb = new StringBuilder();

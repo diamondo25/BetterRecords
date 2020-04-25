@@ -23,6 +23,7 @@
  */
 package tech.feldman.betterrecords.client.gui
 
+import net.minecraft.client.gui.GuiScreen
 import tech.feldman.betterrecords.ID
 import tech.feldman.betterrecords.block.tile.TileFrequencyTuner
 import tech.feldman.betterrecords.client.ClientProxy
@@ -48,6 +49,7 @@ class GuiFrequencyTuner(inventoryPlayer: InventoryPlayer, val tileEntity: TileFr
 
     var checkedURL = false
     var checkURLTime = 0L
+    var isOK = false
 
     var error = ""
 
@@ -55,17 +57,45 @@ class GuiFrequencyTuner(inventoryPlayer: InventoryPlayer, val tileEntity: TileFr
         super.initGui()
         nameField = GuiTextField(1, fontRenderer, 44, 20, 124, 10)
         urlField = GuiTextField(2, fontRenderer, 44, 35, 124, 10)
-        urlField.maxStringLength = 128
+        urlField.maxStringLength = 256
+        nameField.text = "auto"
     }
 
     override fun keyTyped(typedChar: Char, keyCode: Int) {
-        checkedURL = false
-        checkURLTime = System.currentTimeMillis() + 2000
+        when (keyCode) {
+            // Check for tab character so we can switch between namefield and urlfield
+            15 -> {
+                if (nameField.isFocused) {
+                    nameField.isFocused = false
+                    urlField.isFocused = true
+                } else if (urlField.isFocused) {
+                    urlField.isFocused = false
+                    nameField.isFocused = true
+                }
+            }
 
-        when {
-            nameField.isFocused -> nameField.textboxKeyTyped(typedChar, keyCode)
-            urlField.isFocused -> urlField.textboxKeyTyped(typedChar, keyCode)
-            else -> super.keyTyped(typedChar, keyCode)
+            // Check for Esc key, so we can deselect all fields
+            1 -> {
+                if (!urlField.isFocused && !nameField.isFocused) {
+                    // Try to close the window instead
+                    super.keyTyped(typedChar, keyCode)
+                }
+                urlField.isFocused = false
+                nameField.isFocused = false
+            }
+
+            else ->
+                when {
+                    nameField.isFocused -> nameField.textboxKeyTyped(typedChar, keyCode)
+                    urlField.isFocused -> {
+                        urlField.textboxKeyTyped(typedChar, keyCode)
+                        checkedURL = false
+                        // Introduce some delay so we are not spamming the server
+                        checkURLTime = System.currentTimeMillis() + 2000
+                    }
+
+                    else -> super.keyTyped(typedChar, keyCode)
+                }
         }
     }
 
@@ -78,12 +108,12 @@ class GuiFrequencyTuner(inventoryPlayer: InventoryPlayer, val tileEntity: TileFr
         nameField.mouseClicked(x, y, mouseButton)
         urlField.mouseClicked(x, y, mouseButton)
 
-        if (error == I18n.format("gui.betterrecords.frequencytuner.ready") && x in 44..75 && y in 51..66) {
+        if (isOK && x in 44..75 && y in 51..66) {
             PacketHandler.sendToServer(PacketURLWrite(
-                    tileEntity.pos,
-                    0,
-                    nameField.text,
-                    urlField.text
+                tileEntity.pos,
+                0,
+                nameField.text,
+                urlField.text
             ))
         }
     }
@@ -133,6 +163,7 @@ class GuiFrequencyTuner(inventoryPlayer: InventoryPlayer, val tileEntity: TileFr
             error = I18n.format("gui.betterrecords.status.validating")
 
             if (checkURLTime < System.currentTimeMillis()) {
+                isOK = false
                 checkURLTime = 0
 
                 try {
@@ -153,26 +184,42 @@ class GuiFrequencyTuner(inventoryPlayer: InventoryPlayer, val tileEntity: TileFr
 
                             println("buff: $buff")
 
-                            buff.inputStream()
+                            val recheck = buff.inputStream()
                                     .bufferedReader()
                                     .readLines()
-                                    .takeWhile {
+                                    .any {
                                         println("Line: $it")
                                         if (it.startsWith("http://")) {
                                             // Good enough
                                             checkURLTime = 0
+                                            checkedURL = false
                                             urlField.text = it
-                                            return@takeWhile false
+                                            return@any true
                                         }
-                                        return@takeWhile true
+                                        return@any false
                                     }
+                            if (recheck) {
+                                return
+                            }
                         } else {
                             println("No content length, so not using this file for parsing")
                         }
                     }
 
+                    // We could, in theory, check if this is really an ICY stream, due to
+                    // those reporting ICY specific headers. However, without this feature
+                    // you can just put in any valid HTTP url and it'll try to play it.
+
                     error = if (ClientProxy.encodings.contains(connection.getHeaderField("Content-Type"))) {
                         if (connection.responseCode == 200) {
+                            // Try to fill in the name automatically
+                            if (nameField.text == "auto") {
+                                connection.getHeaderField("icy-name")?.also {
+                                    nameField.text = it
+                                }
+                            }
+
+                            isOK = true
                             I18n.format("gui.betterrecords.frequencytuner.ready")
                         } else {
                             I18n.format("gui.betterrecords.status.urlUnavailable")
