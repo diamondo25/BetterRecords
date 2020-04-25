@@ -72,7 +72,7 @@ class RenderLaser : TileEntitySpecialRenderer<TileLaser>() {
                 rotate(-pitch + 90f, 1f, 0f, 0f)
 
                 val length = it.length
-                val width = it.bass / 400f
+                val width = it.rayWidth()
 
                 glBegin(GL11.GL_QUADS)
 

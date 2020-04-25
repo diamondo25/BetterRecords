@@ -23,21 +23,18 @@
  */
 package tech.feldman.betterrecords.network
 
-import tech.feldman.betterrecords.api.event.RadioInsertEvent
-import tech.feldman.betterrecords.api.sound.Sound
 import io.netty.buffer.ByteBuf
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.fml.common.network.ByteBufUtils
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
-import tech.feldman.betterrecords.api.event.LaserHeightChangeEvent
+import tech.feldman.betterrecords.api.event.LaserLengthChangeEvent
 
-class PacketLaserUpdateHeight @JvmOverloads constructor(
+class PacketLaserLengthUpdate @JvmOverloads constructor(
         var pos: BlockPos = BlockPos(0, 0, 0),
         var dimension: Int = -1,
-        var laserHeight: Int = 0
+        var laserLength: Int = 0
 ) : IMessage {
 
     override fun toBytes(buf: ByteBuf) {
@@ -45,20 +42,20 @@ class PacketLaserUpdateHeight @JvmOverloads constructor(
         buf.writeInt(pos.y)
         buf.writeInt(pos.z)
         buf.writeInt(dimension)
-        buf.writeInt(laserHeight)
+        buf.writeInt(laserLength)
     }
 
     override fun fromBytes(buf: ByteBuf) {
         pos = BlockPos(buf.readInt(), buf.readInt(), buf.readInt())
         dimension = buf.readInt()
-        laserHeight = buf.readInt()
+        laserLength = buf.readInt()
     }
 
-    class Handler : IMessageHandler<PacketLaserUpdateHeight, IMessage> {
+    class Handler : IMessageHandler<PacketLaserLengthUpdate, IMessage> {
 
-        override fun onMessage(message: PacketLaserUpdateHeight, ctx: MessageContext): IMessage? {
+        override fun onMessage(message: PacketLaserLengthUpdate, ctx: MessageContext): IMessage? {
             with(message) {
-                MinecraftForge.EVENT_BUS.post(LaserHeightChangeEvent(pos, dimension, laserHeight))
+                MinecraftForge.EVENT_BUS.post(LaserLengthChangeEvent(pos, dimension, laserLength))
             }
 
             return null

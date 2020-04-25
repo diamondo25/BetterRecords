@@ -33,7 +33,9 @@ import net.minecraft.world.World
 import tech.feldman.betterrecords.api.ISoundSource
 import tech.feldman.betterrecords.helper.nbt.getSounds
 import tech.feldman.betterrecords.helper.nbt.hasSounds
+import tech.feldman.betterrecords.item.ItemFrequencyCrystal
 import tech.feldman.betterrecords.network.PacketRadioPlay
+import kotlin.random.Random
 
 class TileRadio : SimpleRecordWireHome(), IRecordWire, ISoundSource {
 

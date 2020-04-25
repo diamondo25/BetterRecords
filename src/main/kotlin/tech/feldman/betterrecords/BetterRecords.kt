@@ -34,24 +34,24 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 
-@Mod(modid = tech.feldman.betterrecords.ID, name = tech.feldman.betterrecords.NAME, version = tech.feldman.betterrecords.VERSION, modLanguageAdapter = tech.feldman.betterrecords.LANGUAGE_ADAPTER, dependencies = tech.feldman.betterrecords.DEPENDENCIES)
+@Mod(modid = ID, name = NAME, version = VERSION, modLanguageAdapter = LANGUAGE_ADAPTER, dependencies = DEPENDENCIES)
 object BetterRecords {
 
-    val logger: Logger = LogManager.getLogger(tech.feldman.betterrecords.ID)
+    val logger: Logger = LogManager.getLogger(ID)
 
-    @SidedProxy(clientSide = tech.feldman.betterrecords.CLIENT_PROXY, serverSide = tech.feldman.betterrecords.SERVER_PROXY)
-    lateinit var proxy: tech.feldman.betterrecords.CommonProxy
+    @SidedProxy(clientSide = CLIENT_PROXY, serverSide = SERVER_PROXY)
+    lateinit var proxy: CommonProxy
 
-    val creativeTab = object : CreativeTabs(tech.feldman.betterrecords.ID) {
+    val creativeTab = object : CreativeTabs(ID) {
         override fun getTabIconItem() = ItemStack(ModItems.itemRecord)
     }
 
     @Mod.EventHandler
-    fun preInit(event: FMLPreInitializationEvent) = tech.feldman.betterrecords.BetterRecords.proxy.preInit(event)
+    fun preInit(event: FMLPreInitializationEvent) = proxy.preInit(event)
 
     @Mod.EventHandler
-    fun init(event: FMLInitializationEvent) = tech.feldman.betterrecords.BetterRecords.proxy.init(event)
+    fun init(event: FMLInitializationEvent) = proxy.init(event)
 
     @Mod.EventHandler
-    fun postInit(event: FMLPostInitializationEvent) = tech.feldman.betterrecords.BetterRecords.proxy.postInit(event)
+    fun postInit(event: FMLPostInitializationEvent) = proxy.postInit(event)
 }

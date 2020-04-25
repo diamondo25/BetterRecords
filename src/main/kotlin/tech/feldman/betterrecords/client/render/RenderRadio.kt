@@ -31,6 +31,7 @@ import net.minecraft.client.renderer.GlStateManager.*
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer
 import net.minecraft.item.ItemStack
 import net.minecraft.util.ResourceLocation
+import tech.feldman.betterrecords.helper.nbt.getSounds
 
 class RenderRadio : TileEntitySpecialRenderer<TileRadio>() {
 
@@ -57,7 +58,13 @@ class RenderRadio : TileEntitySpecialRenderer<TileRadio>() {
         popMatrix()
 
         te?.let {
-            renderConnectionsAndInfo(te, te.pos, x, y, z)
+            val sounds = getSounds(crystal)
+            val extraLines = if (sounds.isNotEmpty()) {
+                arrayOf(sounds[0].name, sounds[0].url)
+            } else {
+                emptyArray()
+            }
+            renderConnectionsAndInfo(te, te.pos, x, y, z, extraLines)
         }
     }
 }

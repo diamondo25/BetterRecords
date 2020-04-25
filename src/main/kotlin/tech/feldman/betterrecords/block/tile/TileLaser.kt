@@ -70,6 +70,7 @@ class TileLaser : ModTile(), IRecordWire, IRecordAmplitude, ITickable {
 
     var animationTicks = 0
 
+    fun rayWidth() = (bass / 400f).coerceAtLeast(0.001f)
     override var treble = 0F
     override var bass = 0F
         set(value) {
@@ -140,7 +141,7 @@ class TileLaser : ModTile(), IRecordWire, IRecordAmplitude, ITickable {
         SOUTH("south"),
         WEST("west");
 
-        // Yaw first, then Pitch
+        // Yaw first, then Pitch (in rendering)
         fun getPitchAndYaw(): Pair<Float, Float> {
             return when (this) {
                 CEILING -> Pair(180f, 0f)

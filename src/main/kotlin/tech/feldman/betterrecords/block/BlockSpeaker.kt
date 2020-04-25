@@ -137,7 +137,7 @@ class BlockSpeaker(name: String) : ModBlock(Material.WOOD, name), TESRProvider<T
         override fun getName() = typeName
 
         companion object {
-            private val map = SpeakerSize.values().associateBy(SpeakerSize::meta)
+            private val map = values().associateBy(SpeakerSize::meta)
             fun fromMeta(meta: Int) = map[meta] ?: SMALL
         }
     }

@@ -24,24 +24,19 @@
 package tech.feldman.betterrecords.client.handler
 
 import tech.feldman.betterrecords.ID
-import tech.feldman.betterrecords.api.event.RadioInsertEvent
-import tech.feldman.betterrecords.api.event.RecordInsertEvent
-import tech.feldman.betterrecords.api.event.SoundStopEvent
-import tech.feldman.betterrecords.client.sound.SoundManager
-import tech.feldman.betterrecords.extensions.distanceTo
 import net.minecraft.client.Minecraft
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.relauncher.Side
-import tech.feldman.betterrecords.api.event.LaserHeightChangeEvent
+import tech.feldman.betterrecords.api.event.LaserLengthChangeEvent
 import tech.feldman.betterrecords.block.tile.TileLaser
 
 @Mod.EventBusSubscriber(modid = ID, value = [Side.CLIENT])
 object LaserEventHandler {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    fun onLaserHeightChangeEvent(event: LaserHeightChangeEvent) {
+    fun onLaserHeightChangeEvent(event: LaserLengthChangeEvent) {
         val (pos, dimension, laserHeight) = event
         val world = Minecraft.getMinecraft().world
         (world.getTileEntity(pos) as? TileLaser)?.let { te ->

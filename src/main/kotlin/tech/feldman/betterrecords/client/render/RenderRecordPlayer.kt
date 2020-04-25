@@ -78,7 +78,7 @@ class RenderRecordPlayer : TileEntitySpecialRenderer<TileRecordPlayer>() {
             }
             //endregion RENDER_RECORD
 
-            renderConnectionsAndInfo(te, te.pos, x, y, z)
+            renderConnectionsAndInfo(te, te.pos, x, y, z, emptyArray())
         }
     }
 }

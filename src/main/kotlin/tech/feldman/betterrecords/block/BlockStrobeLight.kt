@@ -61,7 +61,7 @@ class BlockStrobeLight(name: String) : ModBlock(Material.WOOD, name), TESRProvid
         world!!.notifyBlockUpdate(pos!!, state!!, state, 3)
     }
 
-    override fun removedByPlayer(state: IBlockState, world: World, pos: net.minecraft.util.math.BlockPos, player: EntityPlayer, willHarvest: Boolean): Boolean {
+    override fun removedByPlayer(state: IBlockState, world: World, pos: BlockPos, player: EntityPlayer, willHarvest: Boolean): Boolean {
         if (world.isRemote) return super.removedByPlayer(state, world, pos, player, willHarvest)
         val te = world.getTileEntity(pos)
         if (te != null && te is IRecordWire) ConnectionHelper.clearConnections(world, te as IRecordWire, cleanupOnly = false)

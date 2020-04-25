@@ -101,7 +101,7 @@ object ModConfig {
         @SubscribeEvent
         fun onConfigChanged(event: ConfigChangedEvent.OnConfigChangedEvent) {
             if (event.modID == ID) {
-                ModConfig.update()
+                update()
             }
         }
     }

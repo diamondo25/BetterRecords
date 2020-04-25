@@ -39,6 +39,7 @@ import net.minecraft.block.material.Material
 import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.inventory.InventoryHelper
 import net.minecraft.item.ItemStack
 import net.minecraft.util.*
 import net.minecraft.util.math.AxisAlignedBB
@@ -66,11 +67,11 @@ class BlockRadio(name: String) : ModBlockDirectional(Material.WOOD, name), TESRP
 
     private fun getSongPacket(te: TileRadio, world: World, pos: BlockPos) = getSounds(te.crystal).first().let {
         PacketRadioPlay(
-            pos,
-            world.provider.dimension,
-            te.songRadius,
-            it.name,
-            it.url
+                pos,
+                world.provider.dimension,
+                te.songRadius,
+                it.name,
+                it.url
         )
     }
 
@@ -90,10 +91,11 @@ class BlockRadio(name: String) : ModBlockDirectional(Material.WOOD, name), TESRP
                 world.playSound(pos.x.toDouble(), pos.y.toDouble() + 0.5, pos.z.toDouble(), SoundEvent.REGISTRY.getObject(ResourceLocation("block.chest.close")), SoundCategory.NEUTRAL, 0.2f, world.rand.nextFloat() * 0.2f + 3f, false)
             } else if (te.opening) {
                 if (!te.crystal.isEmpty) {
-                    if (!world.isRemote) dropItem(world, pos)
+                    dropItem(world, pos)
                     te.crystal = ItemStack.EMPTY
                     world.notifyBlockUpdate(pos, state, state, 3)
                 } else if (player.heldItemMainhand.item == ModItems.itemFrequencyCrystal && getSounds(player.heldItemMainhand).isNotEmpty()) {
+                    // Play a song for the people
                     te.crystal = player.heldItemMainhand
                     world.notifyBlockUpdate(pos, state, state, 3)
                     player.heldItemMainhand.count--
@@ -116,30 +118,21 @@ class BlockRadio(name: String) : ModBlockDirectional(Material.WOOD, name), TESRP
         return super.removedByPlayer(state, world, pos, player, willHarvest)
     }
 
-    override fun breakBlock(world: World, pos: net.minecraft.util.math.BlockPos, state: IBlockState) {
+    override fun breakBlock(world: World, pos: BlockPos, state: IBlockState) {
         dropItem(world, pos)
         super.breakBlock(world, pos, state)
     }
 
     private fun dropItem(world: World, pos: BlockPos) {
+        if (world.isRemote) return
+
         (world.getTileEntity(pos) as? TileRadio)?.let { te ->
             if (!te.crystal.isEmpty) {
-                val random = Random()
-                val rx = random.nextDouble() * 0.8F + 0.1F
-                val ry = random.nextDouble() * 0.8F + 0.1F
-                val rz = random.nextDouble() * 0.8F + 0.1F
-
-                val entityItem = EntityItem(world, pos.x + rx, pos.y + ry, pos.z + rz, ItemStack(te.crystal.item, te.crystal.count, te.crystal.itemDamage))
-                if (te.crystal.hasTagCompound()) entityItem.item.tagCompound = te.crystal.tagCompound!!.copy()
-                entityItem.motionX = random.nextGaussian() * 0.05F
-                entityItem.motionY = random.nextGaussian() * 0.05F + 0.2F
-                entityItem.motionZ = random.nextGaussian() * 0.05F
-
-                world.spawnEntity(entityItem)
-                te.crystal.count = 0
+                InventoryHelper.spawnItemStack(world, pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble(), te.crystal.copy())
                 te.crystal = ItemStack.EMPTY
-                PacketHandler.sendToAll(PacketSoundStop(te.pos, world.provider.dimension))
             }
+            PacketHandler.sendToAll(PacketSoundStop(te.pos, world.provider.dimension))
         }
+
     }
 }

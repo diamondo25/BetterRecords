@@ -46,7 +46,7 @@ class ItemFrequencyCrystal(name: String) : ModItem(name), ISoundHolder, IColorab
         val sounds = getSounds(stack)
 
         // Use the name of the sound on the crystal if it is tuned
-        if (sounds.count() == 1) {
+        if (sounds.count() > 0) {
             return sounds.first().name
         }
 

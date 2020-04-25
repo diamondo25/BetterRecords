@@ -51,7 +51,7 @@ class PacketSendLibrary @JvmOverloads constructor(
             with(message) {
                 library?.let {
                     if (ModConfig.useRemoteLibraries) {
-                        tech.feldman.betterrecords.BetterRecords.logger.info("Received library from server: ${it.name}")
+                        BetterRecords.logger.info("Received library from server: ${it.name}")
 
                         Libraries.libraries.add(it)
                     }

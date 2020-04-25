@@ -57,7 +57,7 @@ class BlockRecordEtcher(name: String) : ModBlock(Material.WOOD, name), TESRProvi
 
     override fun onBlockActivated(world: World, pos: BlockPos, state: IBlockState, player: EntityPlayer, hand: EnumHand, side: EnumFacing, hitX: Float, hitY: Float, hitZ: Float): Boolean {
         (world.getTileEntity(pos) as? TileRecordEtcher)?.let {
-            player.openGui(tech.feldman.betterrecords.BetterRecords, 0, world, pos.x, pos.y, pos.z)
+            player.openGui(BetterRecords, 0, world, pos.x, pos.y, pos.z)
             return true
         }
         return false
@@ -68,7 +68,7 @@ class BlockRecordEtcher(name: String) : ModBlock(Material.WOOD, name), TESRProvi
         super.breakBlock(world, pos, state)
     }
 
-    private fun dropItem(world: World, pos: net.minecraft.util.math.BlockPos) {
+    private fun dropItem(world: World, pos: BlockPos) {
         val tileEntity = world.getTileEntity(pos)
         if (tileEntity == null || tileEntity !is TileRecordEtcher)
             return

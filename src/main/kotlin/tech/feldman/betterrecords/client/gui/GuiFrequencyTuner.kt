@@ -35,7 +35,9 @@ import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.resources.I18n
 import net.minecraft.entity.player.InventoryPlayer
 import net.minecraft.util.ResourceLocation
+import java.io.InputStreamReader
 import java.net.URL
+import java.nio.ByteBuffer
 
 class GuiFrequencyTuner(inventoryPlayer: InventoryPlayer, val tileEntity: TileFrequencyTuner) : GuiContainer(ContainerFrequencyTuner(inventoryPlayer, tileEntity)) {
 
@@ -134,10 +136,39 @@ class GuiFrequencyTuner(inventoryPlayer: InventoryPlayer, val tileEntity: TileFr
                 checkURLTime = 0
 
                 try {
-                    val connection = tech.feldman.betterrecords.client.sound.IcyURLConnection(URL(urlField.text.replace(" ", "%20"))).apply {
+                    val connection = IcyURLConnection(URL(urlField.text.replace(" ", "%20"))).apply {
                         instanceFollowRedirects = true
-                        requestMethod = "HEAD"
+                        requestMethod = "GET"
                         connect()
+                    }
+
+                    if (connection.getHeaderField("content-type").contains("audio/x-mpegurl")) {
+                        // Looks like a M3U file to me, lets process the strings and pick the first
+                        println("Processing M3U file")
+
+                        val contentLength = connection.contentLength
+                        if (contentLength > 0) {
+                            val buff = ByteArray(contentLength)
+                            connection.inputStream.read(buff)
+
+                            println("buff: $buff")
+
+                            buff.inputStream()
+                                    .bufferedReader()
+                                    .readLines()
+                                    .takeWhile {
+                                        println("Line: $it")
+                                        if (it.startsWith("http://")) {
+                                            // Good enough
+                                            checkURLTime = 0
+                                            urlField.text = it
+                                            return@takeWhile false
+                                        }
+                                        return@takeWhile true
+                                    }
+                        } else {
+                            println("No content length, so not using this file for parsing")
+                        }
                     }
 
                     error = if (ClientProxy.encodings.contains(connection.getHeaderField("Content-Type"))) {

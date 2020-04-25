@@ -27,8 +27,8 @@ import tech.feldman.betterrecords.api.sound.Sound
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.eventhandler.Event
 
-data class LaserHeightChangeEvent(
+data class LaserLengthChangeEvent(
         val pos: BlockPos,
         val dimension: Int,
-        val laserHeight: Int
+        val laserLength: Int
 ) : Event()

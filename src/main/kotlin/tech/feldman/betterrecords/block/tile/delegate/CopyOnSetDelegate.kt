@@ -32,6 +32,7 @@ class CopyOnSetDelegate {
 
     operator fun getValue(thisRef: Any?, property: KProperty<*>) = field
     operator fun setValue(thisRef: Any?, property: KProperty<*>, value: ItemStack) {
+        //println("${thisRef} ${property} | setting value ${value.hashCode()} ${value}, now ${field?.hashCode()} ${field}")
         field = value.copy()
     }
 }

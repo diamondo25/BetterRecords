@@ -31,7 +31,7 @@ import net.minecraft.util.math.BlockPos
 import org.lwjgl.opengl.GL11
 import tech.feldman.betterrecords.util.getGainForPlayerPosition
 
-fun renderConnectionsAndInfo(te: IRecordWireHome, pos: BlockPos, x: Double, y: Double, z: Double) {
+fun renderConnectionsAndInfo(te: IRecordWireHome, pos: BlockPos, x: Double, y: Double, z: Double, extraLines: Array<String>) {
     (Minecraft.getMinecraft().player.heldItemMainhand.item as? IRecordWireManipulator)?.let {
         GlStateManager.pushMatrix()
 
@@ -51,6 +51,7 @@ fun renderConnectionsAndInfo(te: IRecordWireHome, pos: BlockPos, x: Double, y: D
 
                 GlStateManager.pushMatrix()
 
+                // Draw line from home to other device
                 GlStateManager.glBegin(GL11.GL_LINE_STRIP)
                 GlStateManager.glVertex3f(0F, 0F, 0F)
                 GlStateManager.glVertex3f(x1, y1, z1)
@@ -68,16 +69,18 @@ fun renderConnectionsAndInfo(te: IRecordWireHome, pos: BlockPos, x: Double, y: D
         GlStateManager.rotate(-Minecraft.getMinecraft().renderManager.playerViewY - 180F, 0F, 1F, 0F)
 
         GlStateManager.color(1F, 1F, 1F)
-        var currentY = te.wireSystemInfo.size * -10 - 75
+        var currentY = te.wireSystemInfo.size * -10 - 65
         val fontRenderer = Minecraft.getMinecraft().fontRenderer
 
-        val radiusString = "Play audio: ${getGainForPlayerPosition(pos)}dB"
-        fontRenderer.drawString(radiusString, -fontRenderer.getStringWidth(radiusString) / 2, currentY, 0xFFFFFF)
-
         for (info in te.wireSystemInfo.entries) {
-            currentY += 10
             val infoString = "${info.value}x ${info.key}"
             fontRenderer.drawString(infoString, -fontRenderer.getStringWidth(infoString) / 2, currentY, 0xFFFFFF)
+            currentY += 10
+        }
+
+        extraLines.forEach {
+            fontRenderer.drawString(it, -fontRenderer.getStringWidth(it) / 2, currentY, 0xFFFFFF)
+            currentY += 10
         }
 
         GlStateManager.popMatrix()

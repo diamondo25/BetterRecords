@@ -49,7 +49,7 @@ public class IcyURLConnection extends HttpURLConnection {
     protected InputStream inputStream;
     protected HashMap<String, List<String>> requestProps;
     protected HashMap<String, List<String>> headers;
-    protected String responseLine;
+    protected String headerLine;
 
 
     ////////////////////////////////////////////////////////////////////////////
@@ -94,6 +94,7 @@ public class IcyURLConnection extends HttpURLConnection {
 
         writeLine("GET " + ("".equals(url.getPath()) ? "/" : url.getPath()) + " HTTP/1.1");
         writeLine("Host: " + url.getHost());
+        writeLine("Accept: */*");
 
         if (requestProps != null) {
             for (Map.Entry<String, List<String>> entry : requestProps.entrySet()) {
@@ -105,7 +106,7 @@ public class IcyURLConnection extends HttpURLConnection {
 
         writeLine("");
 
-        responseLine = readResponseLine();
+        headerLine = readResponseLine();
 
         for (String line = readLine(); line != null && line.length() != 0; ) {
             parseHeaderLine(line);
@@ -142,7 +143,7 @@ public class IcyURLConnection extends HttpURLConnection {
 
     @Override
     public String getHeaderField(int n) {
-        return n == 0 ? responseLine : null;
+        return n == 0 ? headerLine : null;
     }
 
 
@@ -199,7 +200,7 @@ public class IcyURLConnection extends HttpURLConnection {
         inputStream = null;
         outputStream = null;
         headers = null;
-        responseLine = null;
+        headerLine = null;
     }
 
 
@@ -273,11 +274,12 @@ public class IcyURLConnection extends HttpURLConnection {
      *
      * @return the line without any new-line character.
      */
-    protected String readLine() throws IOException {
+    private String readLine() throws IOException {
         StringBuilder sb = new StringBuilder();
 
-        int c;
-        while ((c = inputStream.read()) != -1) {
+        while (true) {
+            int c = inputStream.read();
+            if (c == -1) break;
             if (c == '\r') continue;
             if (c == '\n') break;
             sb.append((char) c);

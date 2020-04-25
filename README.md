@@ -27,3 +27,10 @@ Developing / Compiling
 
 ## Release
 To release the jar run: `gradle reobfShadowJar`
+
+## Radio Stream directories
+
+You can find most supported radio stations on the [SHOUTcast directory](https://directory.shoutcast.com/) and the [icecast directory](http://dir.xiph.org/).
+
+### Using a radio stream
+Each SHOUTcast (IcyStream) server 'advertisement' has a link to a M3U file. You can open this file in Notepad, and copy the URL from there. This will be usable right-away 

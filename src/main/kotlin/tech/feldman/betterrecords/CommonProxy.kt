@@ -38,7 +38,7 @@ open class CommonProxy {
     }
 
     open fun init(event: FMLInitializationEvent) {
-        NetworkRegistry.INSTANCE.registerGuiHandler(tech.feldman.betterrecords.BetterRecords, GuiHandler())
+        NetworkRegistry.INSTANCE.registerGuiHandler(BetterRecords, GuiHandler())
 
         Libraries.init()
     }

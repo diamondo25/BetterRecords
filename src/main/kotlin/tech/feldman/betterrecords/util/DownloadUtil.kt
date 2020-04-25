@@ -42,7 +42,7 @@ fun downloadFile(url: URL, target: File,
     val size = connection.contentLength.toLong()
 
     if (size == target.length()) {
-        tech.feldman.betterrecords.BetterRecords.logger.info("Target file exists in cache")
+        BetterRecords.logger.info("Target file exists in cache")
         success()
         return
     }

@@ -32,6 +32,8 @@ import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.item.ItemStack
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
+import net.minecraft.util.Mirror
+import net.minecraft.util.Rotation
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.text.TextComponentTranslation
@@ -42,7 +44,7 @@ import tech.feldman.betterrecords.block.tile.TileLaser
 import tech.feldman.betterrecords.client.render.RenderLaser
 import tech.feldman.betterrecords.helper.ConnectionHelper
 import tech.feldman.betterrecords.network.PacketHandler
-import tech.feldman.betterrecords.network.PacketLaserUpdateHeight
+import tech.feldman.betterrecords.network.PacketLaserLengthUpdate
 
 class BlockLaser(name: String) : ModBlock(Material.WOOD, name), TESRProvider<TileLaser>, ItemModelProvider {
     companion object {
@@ -81,12 +83,19 @@ class BlockLaser(name: String) : ModBlock(Material.WOOD, name), TESRProvider<Til
         return i
     }
 
+    override fun withRotation(state: IBlockState, rot: Rotation): IBlockState {
+        return state.withProperty(MOUNTING, rot.rotate(state.getValue(MOUNTING) as EnumFacing))
+    }
+
+    override fun withMirror(state: IBlockState, mirrorIn: Mirror): IBlockState {
+        return state.withRotation(mirrorIn.toRotation(state.getValue(MOUNTING) as EnumFacing))
+    }
+
     override fun onBlockPlacedBy(world: World, pos: BlockPos, state: IBlockState, entityLiving: EntityLivingBase, itemStack: ItemStack) {
         (world.getTileEntity(pos) as? TileLaser)?.let { te ->
             te.pitch = entityLiving.rotationPitch
             te.yaw = entityLiving.rotationYaw
 
-            println("Changing mounting to ${state.getValue(MOUNTING)}")
             te.mounting = when (state.getValue(MOUNTING)) {
                 EnumFacing.DOWN -> TileLaser.Mounting.FLOOR
                 EnumFacing.UP -> TileLaser.Mounting.CEILING
@@ -119,7 +128,7 @@ class BlockLaser(name: String) : ModBlock(Material.WOOD, name), TESRProvider<Til
             }
 
             if (te.length != length && !world.isRemote) {
-                PacketHandler.sendToAll(PacketLaserUpdateHeight(te.pos, world.provider.dimension, te.length))
+                PacketHandler.sendToAll(PacketLaserLengthUpdate(te.pos, world.provider.dimension, te.length))
 
                 val adjustment = if (te.length > length) "increase" else "decrease"
                 player.sendMessage(TextComponentTranslation("tile.betterrecords:laser.msg.$adjustment", te.length))

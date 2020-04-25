@@ -94,7 +94,7 @@ object Libraries {
                     .map { RemoteLibrary(BetterUtils.getResourceFromJar(it)) }
                     .forEach {
                         libraries.add(it)
-                        tech.feldman.betterrecords.BetterRecords.logger.info("Loaded Built-in Library: ${it.name}")
+                        BetterRecords.logger.info("Loaded Built-in Library: ${it.name}")
                     }
         }
 
@@ -104,7 +104,7 @@ object Libraries {
                 .map { LocalLibrary(it) }
                 .forEach {
                     libraries.add(it)
-                    tech.feldman.betterrecords.BetterRecords.logger.info("Loaded Local Library: ${it.file}")
+                    BetterRecords.logger.info("Loaded Local Library: ${it.file}")
                 }
 
         if (ModConfig.useRemoteLibraries) {
@@ -117,13 +117,13 @@ object Libraries {
                         try {
                             RemoteLibrary(URL(it))
                         } catch (e: MalformedURLException) {
-                            tech.feldman.betterrecords.BetterRecords.logger.error("Unable to load remote library: $it")
+                            BetterRecords.logger.error("Unable to load remote library: $it")
                             null
                         }
                     }
                     .forEach {
                         libraries.add(it)
-                        tech.feldman.betterrecords.BetterRecords.logger.info("Loaded Remote Library: ${it.name}")
+                        BetterRecords.logger.info("Loaded Remote Library: ${it.name}")
                     }
         }
     }
@@ -131,7 +131,7 @@ object Libraries {
     @SubscribeEvent
     fun onClientConnect(event: PlayerEvent.PlayerLoggedInEvent) {
         libraries.forEach {
-            tech.feldman.betterrecords.BetterRecords.logger.info("Sending library \"${it.name}\" to client: ${event.player.name}")
+            BetterRecords.logger.info("Sending library \"${it.name}\" to client: ${event.player.name}")
 
             // We can safely cast the player because this event should only be listened to on the server
             PacketHandler.sendToPlayer(PacketSendLibrary(it), event.player as EntityPlayerMP)

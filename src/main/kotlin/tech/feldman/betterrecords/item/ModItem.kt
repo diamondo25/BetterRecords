@@ -34,7 +34,7 @@ open class ModItem(val name: String) : Item() {
     init {
         setRegistryName("betterrecords:$name")
         unlocalizedName = registryName.toString()
-        creativeTab = tech.feldman.betterrecords.BetterRecords.creativeTab
+        creativeTab = BetterRecords.creativeTab
     }
 
     fun registerRender() {

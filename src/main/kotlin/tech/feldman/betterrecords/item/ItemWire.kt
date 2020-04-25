@@ -81,7 +81,7 @@ class ItemWire(name: String) : ModItem(name), IRecordWireManipulator {
                 PacketHandler.sendToServer(PacketWireConnection(connection))
                 player.getHeldItem(hand).count--
 
-                println("Bound ${homeTileEntity} to ${toTileEntity}")
+                println("Bound $homeTileEntity to $toTileEntity")
                 firstPosition = null
                 return EnumActionResult.PASS
             }
