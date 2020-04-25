@@ -99,7 +99,7 @@ public class IcyURLConnection extends HttpURLConnection {
 
         // Append the query string, if any
         String query = url.getQuery();
-        if ("".equals(query)) {
+        if (!"".equals(query)) {
             requestPath += "?" + query;
         }
 
