@@ -57,7 +57,6 @@ object SoundManager {
 
     fun stopQueueAt(pos: BlockPos, dimension: Int) {
         SoundPlayer.stopPlayingAt(pos, dimension)
-        jobs[Pair(pos, dimension)]?.stop()
         jobs.remove(Pair(pos, dimension))
     }
 }

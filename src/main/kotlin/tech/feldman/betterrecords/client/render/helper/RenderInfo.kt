@@ -31,43 +31,37 @@ import net.minecraft.util.math.BlockPos
 import org.lwjgl.opengl.GL11
 import tech.feldman.betterrecords.util.getGainForPlayerPosition
 
-fun renderConnectionsAndInfo(te: IRecordWireHome, pos: BlockPos, x: Double, y: Double, z: Double, extraLines: Array<String>) {
-    (Minecraft.getMinecraft().player.heldItemMainhand.item as? IRecordWireManipulator)?.let {
+fun renderInfo(x: Double, y: Double, z: Double, blockHeight: Double, vararg lines: String) {
+    GlStateManager.pushMatrix()
 
-        //region RENDER_CONNECTIONS
-        if (te.connections.size > 0) {
-            GlStateManager.pushMatrix()
+    // Try to put it in the middle of the box
+    GlStateManager.translate(x + 0.5, y, z + 0.5)
 
-            GlStateManager.translate(x + 0.5, y + 0.5, z + 0.5)
+    val scale = 100f
 
-            GlStateManager.color(0F, 0F, 0F)
-            GlStateManager.disableTexture2D()
+    // Convert scaling to CM, so textrendering doesn't offset a meter
+    GlStateManager.scale(0.01F, -0.01F, 0.01F)
 
-            GlStateManager.glLineWidth(2F)
+    //val lines = arrayOf("Line 1", "Line 2", "-------------------------- Line 3", "Line 4 ----------------------------")
 
-            for (rec in te.connections) {
-                val x1 = -(pos.x - rec.x2).toFloat()
-                val y1 = -(pos.y - rec.y2).toFloat()
-                val z1 = -(pos.z - rec.z2).toFloat()
+    val lineHeight = 0.1
+    GlStateManager.color(1F, 1F, 1F)
 
-                GlStateManager.pushMatrix()
+    val fontRenderer = Minecraft.getMinecraft().fontRenderer
 
-                // Draw line from home to other device
-                GlStateManager.glBegin(GL11.GL_LINE_STRIP)
-                GlStateManager.glVertex3f(0F, 0F, 0F)
-                GlStateManager.glVertex3f(x1, y1, z1)
-                GlStateManager.glEnd()
-
-                GlStateManager.popMatrix()
-            }
-
-            GlStateManager.enableTexture2D()
-            GlStateManager.color(1F, 1F, 1F)
-
-            GlStateManager.popMatrix()
-        }
-        //endregion RENDER_CONNECTIONS
-
-        renderInfo(x, y, z, 1.0, *te.wireSystemInfo.entries.map { "${it.value}x ${it.key}" }.plus(extraLines).toTypedArray())
+    fun drawText(text: String, y: Int, color: Int) {
+        fontRenderer.drawString(text, -fontRenderer.getStringWidth(text) / 2, y, color)
     }
+
+    // Make billboard 'texture'
+    GlStateManager.rotate(Minecraft.getMinecraft().renderManager.playerViewY + 180F, 0F, -1F, 0F)
+
+    // Renders from top to bottom
+    lines.reversed().fold(blockHeight + lineHeight, { renderY, text ->
+        val lineY = -(renderY * scale).toInt()
+        drawText(text, lineY, 0xFFFFFF)
+        return@fold renderY + lineHeight
+    })
+
+    GlStateManager.popMatrix()
 }

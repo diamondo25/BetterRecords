@@ -73,8 +73,21 @@ class ItemWire(name: String) : ModItem(name), IRecordWireManipulator {
                 }
 
                 // Assign connections to both objects
-                val homeTileEntity = world.getTileEntity(connection.getHomePosition()) as IRecordWire
-                val toTileEntity = world.getTileEntity(connection.getToPosition()) as IRecordWire
+                val homeTileEntity = world.getTileEntity(connection.getHomePosition()) as? IRecordWire
+
+                if (homeTileEntity == null) {
+                    firstPosition = null
+                    println("Start position is not a correct block, so resetting logic")
+                    return EnumActionResult.PASS
+                }
+
+                val toTileEntity = world.getTileEntity(connection.getToPosition()) as? IRecordWire
+
+                if (toTileEntity == null) {
+                    println("To position is not a correct block, ignoring.")
+                    return EnumActionResult.PASS
+                }
+
                 ConnectionHelper.addConnection(world, homeTileEntity, connection, world.getBlockState(connection.getHomePosition()))
                 ConnectionHelper.addConnection(world, toTileEntity, connection, world.getBlockState(connection.getToPosition()))
 

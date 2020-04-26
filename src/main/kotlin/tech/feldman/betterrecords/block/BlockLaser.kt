@@ -40,6 +40,7 @@ import net.minecraft.util.text.TextComponentTranslation
 import net.minecraft.world.IBlockAccess
 import net.minecraft.world.World
 import tech.feldman.betterrecords.api.wire.IRecordWire
+import tech.feldman.betterrecords.api.wire.IRecordWireManipulator
 import tech.feldman.betterrecords.block.tile.TileLaser
 import tech.feldman.betterrecords.client.render.RenderLaser
 import tech.feldman.betterrecords.helper.ConnectionHelper
@@ -118,6 +119,8 @@ class BlockLaser(name: String) : ModBlock(Material.WOOD, name), TESRProvider<Til
     }
 
     override fun onBlockActivated(world: World, pos: BlockPos, state: IBlockState, player: EntityPlayer, hand: EnumHand, side: EnumFacing, hitX: Float, hitY: Float, hitZ: Float): Boolean {
+        if (player.heldItemMainhand.item is IRecordWireManipulator) return false
+
         (world.getTileEntity(pos) as? TileLaser)?.let { te ->
             val length = te.length
 
@@ -128,7 +131,8 @@ class BlockLaser(name: String) : ModBlock(Material.WOOD, name), TESRProvider<Til
             }
 
             if (te.length != length && !world.isRemote) {
-                PacketHandler.sendToAll(PacketLaserLengthUpdate(te.pos, world.provider.dimension, te.length))
+                world.notifyBlockUpdate(pos, state, state, 3)
+                // PacketHandler.sendToAll(PacketLaserLengthUpdate(te.pos, world.provider.dimension, te.length))
 
                 val adjustment = if (te.length > length) "increase" else "decrease"
                 player.sendMessage(TextComponentTranslation("tile.betterrecords:laser.msg.$adjustment", te.length))

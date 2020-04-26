@@ -39,6 +39,8 @@ import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
+import net.minecraft.util.EnumFacing
+import net.minecraft.util.EnumHand
 import net.minecraft.util.IStringSerializable
 import net.minecraft.util.NonNullList
 import net.minecraft.util.math.AxisAlignedBB
@@ -49,7 +51,6 @@ import net.minecraftforge.client.ForgeHooksClient
 import net.minecraftforge.client.model.ModelLoader
 
 class BlockSpeaker(name: String) : ModBlock(Material.WOOD, name), TESRProvider<TileSpeaker>, ItemModelProvider {
-
     companion object {
         val PROPERTYSIZE = PropertyEnum.create("size", SpeakerSize::class.java)
     }
@@ -127,6 +128,23 @@ class BlockSpeaker(name: String) : ModBlock(Material.WOOD, name), TESRProvider<T
         ForgeHooksClient.registerTESRItemStack(item, 0, getTileEntityClass().java)
         ForgeHooksClient.registerTESRItemStack(item, 1, getTileEntityClass().java)
         ForgeHooksClient.registerTESRItemStack(item, 2, getTileEntityClass().java)
+    }
+
+    override fun onBlockActivated(world: World, pos: BlockPos, state: IBlockState, player: EntityPlayer, hand: EnumHand, side: EnumFacing, hitX: Float, hitY: Float, hitZ: Float): Boolean {
+        if (player.isSneaking) {
+            (world.getTileEntity(pos) as? TileSpeaker)?.let { te ->
+                te.channel = when (te.channel) {
+                    TileSpeaker.Channel.STEREO -> TileSpeaker.Channel.LEFT
+                    TileSpeaker.Channel.LEFT -> TileSpeaker.Channel.RIGHT
+                    TileSpeaker.Channel.RIGHT -> TileSpeaker.Channel.NONE
+                    TileSpeaker.Channel.NONE -> TileSpeaker.Channel.STEREO
+                }
+
+                world.notifyBlockUpdate(pos, state, state, 3)
+                return true
+            }
+        }
+        return false
     }
 
     enum class SpeakerSize(val meta: Int, val typeName: String) : IStringSerializable {

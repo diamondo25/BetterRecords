@@ -43,6 +43,7 @@ class TileLaser : ModTile(), IRecordWire, IRecordAmplitude, ITickable {
     var mounting: Mounting = Mounting.FLOOR
 
     var length = 10
+    var active = false
 
     var r = 0F
     var g = 0F
@@ -70,27 +71,33 @@ class TileLaser : ModTile(), IRecordWire, IRecordAmplitude, ITickable {
 
     var animationTicks = 0
 
-    fun rayWidth() = (bass / 400f).coerceAtLeast(0.001f)
+    var lastColorReset = 0L
+
+    fun rayWidth() = (bass / 200f).coerceAtLeast(0.001f)
     override var treble = 0F
     override var bass = 0F
         set(value) {
             field = value
 
-            animRandom.run {
-                r = nextFloat()
-                g = nextFloat()
-                b = nextFloat()
-            }
+            val n = System.currentTimeMillis()
+            if ((n - lastColorReset) > 100) {
+                lastColorReset = n
+                animRandom.run {
+                    r = 0.5f + nextFloat()
+                    g = 0.5f + nextFloat()
+                    b = 0.5f + nextFloat()
+                }
 
-            animRandom.nextInt().also {
-                r += if (it == 0) .3f else -.1f
-                g += if (it == 1) .3f else -.1f
-                b += if (it == 2) .3f else -.1f
-            }
+                animRandom.nextInt().also {
+                    r += if (it == 0) .03f else -.01f
+                    g += if (it == 1) .03f else -.01f
+                    b += if (it == 2) .03f else -.01f
+                }
 
-            r = r.coerceIn(.3F, 1F)
-            g = g.coerceIn(.3F, 1F)
-            b = b.coerceIn(.3F, 1F)
+                r = r.coerceIn(.3F, 1F)
+                g = g.coerceIn(.3F, 1F)
+                b = b.coerceIn(.3F, 1F)
+            }
         }
 
     override fun getName() = "Laser"
@@ -98,6 +105,8 @@ class TileLaser : ModTile(), IRecordWire, IRecordAmplitude, ITickable {
     override val songRadiusIncrease = 0F
 
     override fun update() {
+        if (!active) return
+
         if (bass > 0) bass--
         if (bass < 0) bass = 0F
 

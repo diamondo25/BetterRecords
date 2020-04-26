@@ -36,12 +36,13 @@ import net.minecraftforge.fml.common.event.FMLPostInitializationEvent
 class ClientProxy : tech.feldman.betterrecords.CommonProxy() {
 
     companion object {
-        var encodings = mutableListOf(
+        val encodings = listOf(
                 "audio/ogg", "application/ogg",
                 "audio/mp3",
                 "audio/mpeg", "audio/mpeg; charset=UTF-8",
                 "application/octet-stream",
-                "audio/wav", "audio/x-wav")
+                "audio/wav", "audio/x-wav"
+        )
     }
 
     override fun init(event: FMLInitializationEvent) {

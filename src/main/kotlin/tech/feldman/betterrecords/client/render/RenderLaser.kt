@@ -53,61 +53,72 @@ class RenderLaser : TileEntitySpecialRenderer<TileLaser>() {
         MODEL_BASE.render(null, basePitch, baseYaw, 0.0f, 0.0f, 0.0f, 0.0625f)
 
 
-        val yaw = te?.let{ it.yaw + it.yawAnim.current } ?: 0F
-        val pitch = te?.let{ it.pitch + it.pitchAnim.current } ?: 0F
+        val yaw = te?.let { it.yaw + it.yawAnim.current } ?: 0F
+        val pitch = te?.let { it.pitch + it.pitchAnim.current } ?: 0F
         MODEL_UNIT.render(null, pitch, yaw, 0.0f, 0.0f, 0.0f, 0.0625f)
 
         rotate(-180f, 0.0f, 0.0f, 1.0f)
         translate(0.0f, -.926f, 0.0f)
 
         te?.let {
-            if (it.bass != 0F && ModConfig.client.flashMode > 0) {
-                pushMatrix()
+            if (ModConfig.client.flashMode <= 0 && te.active) return@let
+            pushMatrix()
 
-                disableTexture2D()
-                enableBlend()
-                disableCull()
+            disableTexture2D()
+            enableBlend()
+            disableCull()
 
-                rotate(-yaw + 180f, 0f, 1f, 0f)
-                rotate(-pitch + 90f, 1f, 0f, 0f)
+            rotate(-yaw + 180f, 0f, 1f, 0f)
+            rotate(-pitch + 90f, 1f, 0f, 0f)
 
-                val length = it.length
-                val width = it.rayWidth()
+            val length = it.length
+            val width = it.rayWidth()
 
-                glBegin(GL11.GL_QUADS)
 
-                color(it.r, it.g, it.b, if (ModConfig.client.flashMode == 1) .3f else .8f)
+            color(it.r, it.g, it.b, if (ModConfig.client.flashMode == 1) .3f else .8f)
 
-                glVertex3f(width, 0f, -width)
-                glVertex3f(-width, 0f, -width)
-                glVertex3f(-width, length.toFloat(), -width)
-                glVertex3f(width, length.toFloat(), -width)
+            val wideLaser = false
 
-                glVertex3f(-width, 0f, width)
-                glVertex3f(width, 0f, width)
-                glVertex3f(width, length.toFloat(), width)
-                glVertex3f(-width, length.toFloat(), width)
+            // println("${it.r} ${it.g} ${it.b} ${length} ${width}")
 
-                glVertex3f(width, 0f, width)
-                glVertex3f(width, 0f, -width)
-                glVertex3f(width, length.toFloat(), -width)
-                glVertex3f(width, length.toFloat(), width)
-
-                glVertex3f(-width, 0f, -width)
-                glVertex3f(-width, 0f, width)
-                glVertex3f(-width, length.toFloat(), width)
-                glVertex3f(-width, length.toFloat(), -width)
-
+            if (wideLaser) {
+                glBegin(GL11.GL_TRIANGLES)
+                glVertex3f(0f, 0f, 0f)
+                glVertex3f(-20f, length.toFloat(), 0f)
+                glVertex3f(20f, length.toFloat(), 0f)
                 glEnd()
+            } else {
+                glBegin(GL11.GL_QUADS)
+                glVertex3f(width, 0f, -width)
+                glVertex3f(-width, 0f, -width)
+                glVertex3f(-width, length.toFloat(), -width)
+                glVertex3f(width, length.toFloat(), -width)
 
-                enableCull()
-                disableBlend()
-                enableTexture2D()
+                glVertex3f(-width, 0f, width)
+                glVertex3f(width, 0f, width)
+                glVertex3f(width, length.toFloat(), width)
+                glVertex3f(-width, length.toFloat(), width)
 
-                GL11.glPopMatrix()
+                glVertex3f(width, 0f, width)
+                glVertex3f(width, 0f, -width)
+                glVertex3f(width, length.toFloat(), -width)
+                glVertex3f(width, length.toFloat(), width)
 
-                color(1f, 1f, 1f, 1f)
+                glVertex3f(-width, 0f, -width)
+                glVertex3f(-width, 0f, width)
+                glVertex3f(-width, length.toFloat(), width)
+                glVertex3f(-width, length.toFloat(), -width)
+                glEnd()
             }
+
+
+            enableCull()
+            disableBlend()
+            enableTexture2D()
+
+            GL11.glPopMatrix()
+
+            color(1f, 1f, 1f, 1f)
         }
 
         popMatrix()

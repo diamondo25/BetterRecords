@@ -44,7 +44,9 @@ import tech.feldman.betterrecords.api.record.IRecordAmplitude
 import tech.feldman.betterrecords.api.sound.Sound
 import tech.feldman.betterrecords.api.wire.IRecordWireHome
 import tech.feldman.betterrecords.block.tile.ModTile
+import tech.feldman.betterrecords.block.tile.TileLaser
 import tech.feldman.betterrecords.block.tile.TileRadio
+import tech.feldman.betterrecords.block.tile.TileSpeaker
 import tech.feldman.betterrecords.client.handler.ClientRenderHandler
 import tech.feldman.betterrecords.util.downloadFile
 import tech.feldman.betterrecords.util.getGainForPlayerPosition
@@ -258,7 +260,6 @@ object SoundPlayer {
 
         fun hasFreeBuffers() = !unusedBuffers.isEmpty()
 
-        var started = false
 
         // b should be the buffer with the channel already selected/filtered
         fun streamData(b: ByteBuffer, sampleRate: Int, bufferFormat: Int) {
@@ -278,9 +279,8 @@ object SoundPlayer {
             AL10.alSourceQueueBuffers(source, usableBuffer.toInt())
             checkALError("Queued")
 
-            if (!started) {
-                started = true
-
+            val sourceState = AL10.alGetSourcei(source, AL10.AL_SOURCE_STATE)
+            if (sourceState == AL10.AL_STOPPED || sourceState == AL10.AL_INITIAL) {
                 AL10.alSourcePlay(source)
                 checkALError("Source play")
             }
@@ -316,8 +316,9 @@ object SoundPlayer {
         }
 
         fun setVolume(volume: Float) {
-            leftSpeaker.setVolume(volume)
-            rightSpeaker.setVolume(volume)
+            val channel = (te as? TileSpeaker)?.channel ?: TileSpeaker.Channel.STEREO
+            leftSpeaker.setVolume(if (channel.left) volume else 0f)
+            rightSpeaker.setVolume(if (channel.right) volume else 0f)
         }
 
         fun stop() {
@@ -352,36 +353,37 @@ object SoundPlayer {
         if (Minecraft.getMinecraft().world?.provider?.dimension != dimension) return
         val te = Minecraft.getMinecraft().world.getTileEntity(pos)!! as ISoundSource
 
-        val allSpeakers = mutableListOf<StereoSpeaker>()
+        val allConnections = setOf(pos)
+                .plus(te.connections.map { BlockPos(it.x2, it.y2, it.z2) })
 
-        val allSpeakerPositions = mutableSetOf<BlockPos>()
-        allSpeakerPositions.add(pos)
+        val activeLasers = allConnections
+                .mapNotNull { (Minecraft.getMinecraft().world.getTileEntity(it) as? TileLaser) }
 
-        allSpeakerPositions.addAll(te.connections.map { BlockPos(it.x2, it.y2, it.z2) })
+        val allSpeakers = allConnections
+                .mapNotNull {
+                    (Minecraft.getMinecraft().world.getTileEntity(it) as? ISoundSource)?.let { soundSource ->
+                        return@mapNotNull StereoSpeaker(
+                                Vec3d(
+                                        it.x.toDouble() + 0.5,
+                                        it.y.toDouble() + 0.5,
+                                        it.z.toDouble() + 0.5
+                                ),
+                                soundSource
+                        )
+                    }
+                }
 
-        allSpeakerPositions.forEach {
-            val te = Minecraft.getMinecraft().world.getTileEntity(it)
-            if (te is ISoundSource) {
-                allSpeakers.add(StereoSpeaker(
-                        Vec3d(it.x.toDouble() + 0.5, it.y.toDouble() + 0.5, it.z.toDouble() + 0.5),
-                        te
-                ))
-            }
-        }
 
-        allSpeakers.forEach { it.start() }
-
-        val buffer = ByteArray((targetFormat.sampleRate * targetFormat.frameSize).toInt())
+        val buffer = ByteArray((targetFormat.sampleRate * targetFormat.frameSize * 50).toInt())
 
         val bufferFormat = AL10.AL_FORMAT_MONO16
 
+        println("Starting playing audio")
+
+        allSpeakers.forEach { it.start() }
+        activeLasers.forEach { it.active = true }
+
         while (isSoundPlayingAt(pos, dimension)) {
-            allSpeakers.forEach { it.handleProcessedBuffers() }
-
-            val currentVolume = getIngameVolume()
-
-            allSpeakers.forEach { it.setVolume(currentVolume) }
-
             while (allSpeakers.all { it.hasFreeBuffers() }) {
                 val bytes = din.read(buffer)
                 if (bytes <= 0) break
@@ -389,10 +391,18 @@ object SoundPlayer {
 
                 updateLights(buffer, pos, dimension)
             }
+
+            allSpeakers.forEach { it.handleProcessedBuffers() }
+
+            val currentVolume = getIngameVolume()
+
+            allSpeakers.forEach { it.setVolume(currentVolume) }
         }
 
         stopPlayingAt(pos, dimension)
         allSpeakers.forEach { it.stop() }
+        activeLasers.forEach { it.active = false }
+        println("Finished playing audio")
     }
 
     private fun updateLights(buffer: ByteArray, pos: BlockPos, dimension: Int) {

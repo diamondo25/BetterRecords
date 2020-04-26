@@ -35,6 +35,15 @@ class TileSpeaker : ModTile(), IRecordWire, ISoundSource {
 
     var rotation = 0f
 
+    enum class Channel(val nbtName: String, val left: Boolean, val right: Boolean) {
+        LEFT("left", true, false),
+        RIGHT("right", false, true),
+        STEREO("stereo", true, true),
+        NONE("none", false, false);
+    }
+
+    var channel = Channel.STEREO
+
     override fun getRotationDegrees(): Float = rotation - 180f
 
     var size = BlockSpeaker.SpeakerSize.SMALL
@@ -69,6 +78,17 @@ class TileSpeaker : ModTile(), IRecordWire, ISoundSource {
 
         rotation = getFloat("rotation")
         connections = ConnectionHelper.unserializeConnections(getString("connections")).toMutableList()
+        channel = if (hasKey("channel")) {
+            when (getString("channel")) {
+                Channel.LEFT.nbtName -> Channel.LEFT
+                Channel.RIGHT.nbtName -> Channel.RIGHT
+                Channel.STEREO.nbtName -> Channel.STEREO
+                Channel.NONE.nbtName -> Channel.NONE
+                else -> Channel.STEREO
+            }
+        } else {
+            Channel.STEREO
+        }
     }
 
     override fun writeToNBT(compound: NBTTagCompound) = compound.apply {
@@ -76,5 +96,6 @@ class TileSpeaker : ModTile(), IRecordWire, ISoundSource {
 
         set("rotation", rotation)
         set("connections", ConnectionHelper.serializeConnections(connections))
+        set("channel", channel.nbtName)
     }
 }

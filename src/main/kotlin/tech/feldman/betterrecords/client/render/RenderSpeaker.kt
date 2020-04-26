@@ -23,6 +23,7 @@
  */
 package tech.feldman.betterrecords.client.render
 
+import net.minecraft.client.Minecraft
 import tech.feldman.betterrecords.ID
 import tech.feldman.betterrecords.block.BlockSpeaker
 import tech.feldman.betterrecords.block.tile.TileSpeaker
@@ -32,6 +33,13 @@ import tech.feldman.betterrecords.client.model.ModelSMSpeaker
 import net.minecraft.client.renderer.GlStateManager.*
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer
 import net.minecraft.util.ResourceLocation
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.RayTraceResult
+import net.minecraft.util.math.Vec3d
+import net.minecraftforge.client.event.DrawBlockHighlightEvent
+import net.minecraftforge.fml.common.Mod
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+import tech.feldman.betterrecords.client.render.helper.renderInfo
 
 class RenderSpeaker : TileEntitySpecialRenderer<TileSpeaker>() {
 
@@ -54,10 +62,7 @@ class RenderSpeaker : TileEntitySpecialRenderer<TileSpeaker>() {
             rotate(te.rotation, 0F, 1F, 0F)
         }
 
-        val size = when (te) {
-            null -> BlockSpeaker.SpeakerSize.MEDIUM
-            else -> te.size
-        }
+        val size = te?.size ?: BlockSpeaker.SpeakerSize.MEDIUM
 
         bindTexture(when (size) {
             BlockSpeaker.SpeakerSize.SMALL -> TEXTURE_SM
@@ -72,5 +77,34 @@ class RenderSpeaker : TileEntitySpecialRenderer<TileSpeaker>() {
         }.render(null, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0625F)
 
         popMatrix()
+
+        te?.let {
+            if (HoverRenderer.selectedBlock == it.pos) {
+                renderInfo(x, y, z, when(size) {
+                    BlockSpeaker.SpeakerSize.SMALL -> 0.6
+                    BlockSpeaker.SpeakerSize.MEDIUM -> 0.9
+                    BlockSpeaker.SpeakerSize.LARGE -> 1.5
+                },"Channel: " + it.channel.nbtName)
+            }
+        }
+    }
+
+    @Mod.EventBusSubscriber(modid = ID)
+    private object HoverRenderer {
+        var selectedBlock: BlockPos? = null
+
+        @SubscribeEvent
+        fun onDrawBlockHighlightEvent(evt: DrawBlockHighlightEvent) {
+            val tgt = evt.target
+            if (tgt.typeOfHit == RayTraceResult.Type.BLOCK) {
+                val pos = tgt.blockPos
+                val te = Minecraft.getMinecraft().world.getTileEntity(pos)
+                if (te is TileSpeaker) {
+                    selectedBlock = pos
+                    return
+                }
+            }
+            selectedBlock = null
+        }
     }
 }
