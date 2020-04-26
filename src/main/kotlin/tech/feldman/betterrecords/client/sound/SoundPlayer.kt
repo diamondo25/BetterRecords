@@ -383,20 +383,24 @@ object SoundPlayer {
         allSpeakers.forEach { it.start() }
         activeLasers.forEach { it.active = true }
 
-        while (isSoundPlayingAt(pos, dimension)) {
-            while (allSpeakers.all { it.hasFreeBuffers() }) {
-                val bytes = din.read(buffer)
-                if (bytes <= 0) break
-                allSpeakers.forEach { it.streamData(buffer, bytes, targetFormat.sampleRate.toInt(), bufferFormat) }
+        try {
+            while (isSoundPlayingAt(pos, dimension)) {
+                while (allSpeakers.all { it.hasFreeBuffers() }) {
+                    val bytes = din.read(buffer)
+                    if (bytes <= 0) break
+                    allSpeakers.forEach { it.streamData(buffer, bytes, targetFormat.sampleRate.toInt(), bufferFormat) }
 
-                updateLights(buffer, pos, dimension)
+                    updateLights(buffer, pos, dimension)
+                }
+
+                allSpeakers.forEach { it.handleProcessedBuffers() }
+
+                val currentVolume = getIngameVolume()
+
+                allSpeakers.forEach { it.setVolume(currentVolume) }
             }
-
-            allSpeakers.forEach { it.handleProcessedBuffers() }
-
-            val currentVolume = getIngameVolume()
-
-            allSpeakers.forEach { it.setVolume(currentVolume) }
+        } catch (ex: Exception) {
+            println("Exception while processing data: $ex")
         }
 
         stopPlayingAt(pos, dimension)
@@ -422,7 +426,7 @@ object SoundPlayer {
             te.addTreble(treble)
             te.addBass(bass)
 
-            for (connection in te.connections) {
+            te.connections.stream().forEach {connection ->
                 val connectedTe = Minecraft.getMinecraft().world.getTileEntity(BlockPos(connection.x2, connection.y2, connection.z2))
 
                 (connectedTe as? IRecordAmplitude)?.let {

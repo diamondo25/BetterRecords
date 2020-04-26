@@ -61,7 +61,7 @@ class RenderLaser : TileEntitySpecialRenderer<TileLaser>() {
         translate(0.0f, -.926f, 0.0f)
 
         te?.let {
-            if (ModConfig.client.flashMode <= 0 && te.active) return@let
+            if (ModConfig.client.flashMode <= 0 || !te.active) return@let
             pushMatrix()
 
             disableTexture2D()
