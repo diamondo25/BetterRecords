@@ -25,8 +25,15 @@ package tech.feldman.betterrecords.client.sound
 
 import tech.feldman.betterrecords.api.sound.Sound
 import net.minecraft.util.math.BlockPos
+import net.minecraftforge.event.world.ChunkEvent
+import net.minecraftforge.event.world.WorldEvent
+import net.minecraftforge.fml.common.Mod
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+import net.minecraftforge.fml.relauncher.Side
+import tech.feldman.betterrecords.ID
 import kotlin.concurrent.thread
 
+@Mod.EventBusSubscriber(Side.CLIENT, modid = ID)
 object SoundManager {
 
     private val jobs = hashMapOf<Pair<BlockPos, Int>, Thread>()
@@ -58,5 +65,25 @@ object SoundManager {
     fun stopQueueAt(pos: BlockPos, dimension: Int) {
         SoundPlayer.stopPlayingAt(pos, dimension)
         jobs.remove(Pair(pos, dimension))
+    }
+
+    @SubscribeEvent
+    fun unloadChunk(evt: ChunkEvent.Unload) {
+        jobs
+                .map { it.key }
+                .filter { t -> evt.world.getChunkFromBlockCoords(t.first) == evt.chunk }
+                .forEach {
+                    stopQueueAt(it.first, it.second)
+                }
+    }
+
+    @SubscribeEvent
+    fun unloadWorld(evt: WorldEvent.Unload) {
+        jobs
+                .map { it.key }
+                .filter { it.second == evt.world.provider.dimension }
+                .forEach {
+                    stopQueueAt(it.first, it.second)
+                }
     }
 }

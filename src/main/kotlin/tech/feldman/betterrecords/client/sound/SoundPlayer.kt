@@ -395,12 +395,13 @@ object SoundPlayer {
 
                 allSpeakers.forEach { it.handleProcessedBuffers() }
 
-                val currentVolume = getIngameVolume()
-
-                allSpeakers.forEach { it.setVolume(currentVolume) }
+                getIngameVolume().also { volume ->
+                    allSpeakers.forEach { it.setVolume(volume) }
+                }
             }
         } catch (ex: Exception) {
             println("Exception while processing data: $ex")
+            ex.printStackTrace()
         }
 
         stopPlayingAt(pos, dimension)
@@ -410,33 +411,25 @@ object SoundPlayer {
     }
 
     private fun updateLights(buffer: ByteArray, pos: BlockPos, dimension: Int) {
-        if (Minecraft.getMinecraft().world?.provider?.dimension != dimension) {
+        val world = Minecraft.getMinecraft().world
+        if (world?.provider?.dimension != dimension) {
             return
         }
 
-        var unscaledTreble = -1F
-        var unscaledBass = -1F
 
-        val te = Minecraft.getMinecraft().world.getTileEntity(pos)
+        (world.getTileEntity(pos) as? IRecordWireHome)?.let { te ->
+            te.addTreble(getUnscaledWaveform(buffer, true, false))
+            te.addBass(getUnscaledWaveform(buffer, false, false))
 
-        val treble = getUnscaledWaveform(buffer, true, false)
-        val bass = getUnscaledWaveform(buffer, false, false)
+            val unscaledTreble = getUnscaledWaveform(buffer, true, true)
+            val unscaledBass = getUnscaledWaveform(buffer, false, true)
 
-        (te as? IRecordWireHome)?.let {
-            te.addTreble(treble)
-            te.addBass(bass)
-
-            te.connections.stream().forEach {connection ->
-                val connectedTe = Minecraft.getMinecraft().world.getTileEntity(BlockPos(connection.x2, connection.y2, connection.z2))
+            te.connections.toList().forEach { connection ->
+                val connectedTe = world.getTileEntity(connection.getToPosition())
 
                 (connectedTe as? IRecordAmplitude)?.let {
-                    if (unscaledTreble == -1F || unscaledBass == 11F) {
-                        unscaledTreble = getUnscaledWaveform(buffer, true, true)
-                        unscaledBass = getUnscaledWaveform(buffer, false, true)
-                    }
-
-                    connectedTe.treble = unscaledTreble
-                    connectedTe.bass = unscaledBass
+                    it.treble = unscaledTreble
+                    it.bass = unscaledBass
                 }
             }
         }
